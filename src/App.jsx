@@ -17,6 +17,11 @@ function App() {
   const tlRef = useRef(null);
 
   useGSAP(() => {
+    if (tlRef.current) {
+      tlRef.current.revert();
+      tlRef.current.kill();
+    }
+
     const commonEase = { duration: 0.7, ease: "power3.inOut" };
 
     tlRef.current = isMobile

@@ -83,7 +83,11 @@
 
 @media (max-width: 764px) {
   .info-box {
-    top: 380px;
-    width: 420px;
+    bottom: 120px;
+    top: auto;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: 390px;
   }
 }
