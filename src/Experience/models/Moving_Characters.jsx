@@ -55,6 +55,23 @@ export default function Model(props) {
   const springFrontWheelRef = useRef();
   const springBackWheelRef = useRef();
 
+  const winterSideFaceRef = useRef();
+  const winterSideFaceSmileRef = useRef();
+  const springSideFaceRef = useRef();
+  const springSideFaceSmileRef = useRef();
+
+  const winterSideCharacterSwapRef = useRef();
+  const winterFrontCharacterSwapRef = useRef();
+  const springSideCharacterSwapRef = useRef();
+  const springFrontCharacterSwapRef = useRef();
+
+  const isScrolling = useRef(false);
+  const scrollTimeout = useRef(null);
+
+  const idleTimer = useRef(null);
+  const winterShowingFront = useRef(true);
+  const springShowingFront = useRef(true);
+
   const offsets = {
     winterFrontCharacterRef: 0.0124,
     winterSideCharacterRef: 0.0124,
@@ -226,21 +243,113 @@ export default function Model(props) {
     const wheelSpeed = 205;
     if (springFrontWheelRef.current) {
       springFrontWheelRef.current.rotation.z =
-        nodes.Moving_Characters_Spring_side_front_wheel.rotation.z +
+        nodes.Moving_Characters_Spring_side_front_wheel.rotation.z -
         scrollProgress * wheelSpeed;
     }
     if (springBackWheelRef.current) {
       springBackWheelRef.current.rotation.z =
-        nodes.Moving_Characters_Spring_side_back_wheel.rotation.z +
+        nodes.Moving_Characters_Spring_side_back_wheel.rotation.z -
         scrollProgress * wheelSpeed;
     }
+
+    const scrollChanged = scrollProgress !== previousScrollProgress.current;
+    if (scrollChanged) {
+      isScrolling.current = true;
+
+      if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+
+      const { winter, spring } = progressMoveRanges;
+
+      if (
+        winterShowingFront.current &&
+        scrollProgress >= winter.start &&
+        scrollProgress < winter.end
+      ) {
+        winterShowingFront.current = false;
+        gsap.to(winterFrontCharacterSwapRef.current.position, {
+          y: -5,
+          duration: 0.4,
+          ease: "back.in(1.2)",
+        });
+        gsap.to(winterSideCharacterSwapRef.current.position, {
+          y: 0,
+          duration: 0.6,
+          delay: 0.2,
+          ease: "back.out(1.2)",
+        });
+      }
+      if (
+        springShowingFront.current &&
+        scrollProgress >= spring.start &&
+        scrollProgress < spring.end
+      ) {
+        springShowingFront.current = false;
+        gsap.to(springFrontCharacterSwapRef.current.position, {
+          y: -5,
+          duration: 0.4,
+          ease: "back.in(1.2)",
+        });
+        gsap.to(springSideCharacterSwapRef.current.position, {
+          y: 0,
+          duration: 0.6,
+          delay: 0.2,
+          ease: "back.out(1.2)",
+        });
+      }
+
+      scrollTimeout.current = setTimeout(() => {
+        isScrolling.current = false;
+      }, 50);
+
+      idleTimer.current = setTimeout(() => {
+        if (!winterShowingFront.current) {
+          winterShowingFront.current = true;
+          gsap.to(winterSideCharacterSwapRef.current.position, {
+            y: -5,
+            duration: 0.4,
+            ease: "back.in(1.2)",
+          });
+          gsap.to(winterFrontCharacterSwapRef.current.position, {
+            y: 0,
+            duration: 0.6,
+            delay: 0.2,
+            ease: "back.out(1.2)",
+          });
+        }
+        if (!springShowingFront.current) {
+          springShowingFront.current = true;
+          gsap.to(springSideCharacterSwapRef.current.position, {
+            y: -5,
+            duration: 0.4,
+            ease: "back.in(1.2)",
+          });
+          gsap.to(springFrontCharacterSwapRef.current.position, {
+            y: 0,
+            duration: 0.6,
+            delay: 0.2,
+            ease: "back.out(1.2)",
+          });
+        }
+      }, 3000);
+    }
+
+    const scrolling = isScrolling.current;
+    if (winterSideFaceRef.current)
+      winterSideFaceRef.current.visible = !scrolling;
+    if (winterSideFaceSmileRef.current)
+      winterSideFaceSmileRef.current.visible = scrolling;
+    if (springSideFaceRef.current)
+      springSideFaceRef.current.visible = !scrolling;
+    if (springSideFaceSmileRef.current)
+      springSideFaceSmileRef.current.visible = scrolling;
 
     previousScrollProgress.current = scrollProgress;
   });
 
   return (
     <group {...props} dispose={null}>
-      <group ref={winterFrontCharacterRef} visible={false}>
+      <group ref={winterFrontCharacterRef}>
         <group ref={winterFrontCharacterInnerWrapperRef} position={[0, -5, 0]}>
           <AnimateMesh
             position={[0, 0, 0]}
@@ -255,45 +364,59 @@ export default function Model(props) {
               },
             ]}
           >
-            <mesh
-              geometry={nodes.Moving_Characters_Winter_arm_left_front.geometry}
-              material={texture_1}
-              position={nodes.Moving_Characters_Winter_arm_left_front.position}
-            />
-            <mesh
-              geometry={nodes.Moving_Characters_Winter_arm_right_front.geometry}
-              material={texture_1}
-              position={nodes.Moving_Characters_Winter_arm_right_front.position}
-            />
-            <mesh
-              geometry={nodes.Moving_Characters_Winter_front_character.geometry}
-              material={texture_1}
-              position={nodes.Moving_Characters_Winter_front_character.position}
-            />
-            <mesh
-              geometry={nodes.Moving_Characters_Winter_Front_Smile.geometry}
-              material={texture_1}
-              position={nodes.Moving_Characters_Winter_Front_Smile.position}
-            />
-            <mesh
-              geometry={
-                nodes.Moving_Characters_Winter_front_smile_face.geometry
-              }
-              material={texture_1}
-              position={
-                nodes.Moving_Characters_Winter_front_smile_face.position
-              }
-            />
-            <mesh
-              geometry={nodes.Moving_Characters_Winter_happy_face.geometry}
-              material={texture_1}
-              position={nodes.Moving_Characters_Winter_happy_face.position}
-            />
-            <mesh
-              geometry={nodes.Moving_Characters_Winter_head_front.geometry}
-              material={texture_1}
-              position={nodes.Moving_Characters_Winter_head_front.position}
-            />
+            <group ref={winterFrontCharacterSwapRef} position={[0, 0, 0]}>
+              <mesh
+                geometry={
+                  nodes.Moving_Characters_Winter_arm_left_front.geometry
+                }
+                material={texture_1}
+                position={
+                  nodes.Moving_Characters_Winter_arm_left_front.position
+                }
+              />
+              <mesh
+                geometry={
+                  nodes.Moving_Characters_Winter_arm_right_front.geometry
+                }
+                material={texture_1}
+                position={
+                  nodes.Moving_Characters_Winter_arm_right_front.position
+                }
+              />
+              <mesh
+                geometry={
+                  nodes.Moving_Characters_Winter_front_character.geometry
+                }
+                material={texture_1}
+                position={
+                  nodes.Moving_Characters_Winter_front_character.position
+                }
+              />
+              <mesh
+                geometry={nodes.Moving_Characters_Winter_Front_Smile.geometry}
+                material={texture_1}
+                position={nodes.Moving_Characters_Winter_Front_Smile.position}
+              />
+              <mesh
+                geometry={
+                  nodes.Moving_Characters_Winter_front_smile_face.geometry
+                }
+                material={texture_1}
+                position={
+                  nodes.Moving_Characters_Winter_front_smile_face.position
+                }
+              />
+              {/* <mesh
+                geometry={nodes.Moving_Characters_Winter_happy_face.geometry}
+                material={texture_1}
+                position={nodes.Moving_Characters_Winter_happy_face.position}
+              /> */}
+              <mesh
+                geometry={nodes.Moving_Characters_Winter_head_front.geometry}
+                material={texture_1}
+                position={nodes.Moving_Characters_Winter_head_front.position}
+              />
+            </group>
           </AnimateMesh>
         </group>
       </group>
@@ -313,64 +436,81 @@ export default function Model(props) {
               },
             ]}
           >
-            <mesh
-              ref={winterLeftArmRef}
-              geometry={nodes.Moving_Characters_Winter_left_arm.geometry}
-              material={texture_1}
-              position={nodes.Moving_Characters_Winter_left_arm.position}
-            />
-            <mesh
-              ref={winterRightArmRef}
-              geometry={nodes.Moving_Characters_Winter_right_arm.geometry}
-              material={texture_1}
-              position={nodes.Moving_Characters_Winter_right_arm.position}
-            />
-            <mesh
-              ref={winterLeftFootRef}
-              geometry={nodes.Moving_Characters_Winter_left_foot.geometry}
-              material={texture_1}
-              position={nodes.Moving_Characters_Winter_left_foot.position}
-            />
-            <mesh
-              ref={winterRightFootRef}
-              geometry={nodes.Moving_Characters_Winter_right_foot.geometry}
-              material={texture_1}
-              position={nodes.Moving_Characters_Winter_right_foot.position}
-            />
-            <mesh
-              geometry={nodes.Moving_Characters_Winter_side.geometry}
-              material={texture_1}
-              position={nodes.Moving_Characters_Winter_side.position}
-            />
+            <group ref={winterSideCharacterSwapRef} position={[0, -5, 0]}>
+              <mesh
+                ref={winterLeftArmRef}
+                geometry={nodes.Moving_Characters_Winter_left_arm.geometry}
+                material={texture_1}
+                position={nodes.Moving_Characters_Winter_left_arm.position}
+              />
+              <mesh
+                ref={winterRightArmRef}
+                geometry={nodes.Moving_Characters_Winter_right_arm.geometry}
+                material={texture_1}
+                position={nodes.Moving_Characters_Winter_right_arm.position}
+              />
+              <mesh
+                ref={winterLeftFootRef}
+                geometry={nodes.Moving_Characters_Winter_left_foot.geometry}
+                material={texture_1}
+                position={nodes.Moving_Characters_Winter_left_foot.position}
+              />
+              <mesh
+                ref={winterRightFootRef}
+                geometry={nodes.Moving_Characters_Winter_right_foot.geometry}
+                material={texture_1}
+                position={nodes.Moving_Characters_Winter_right_foot.position}
+              />
+              <mesh
+                geometry={nodes.Moving_Characters_Winter_side.geometry}
+                material={texture_1}
+                position={nodes.Moving_Characters_Winter_side.position}
+              />
+              <mesh
+                ref={winterSideFaceRef}
+                geometry={nodes.Moving_Characters_Winter_side_face.geometry}
+                material={texture_1}
+                position={nodes.Moving_Characters_Winter_side_face.position}
+              />
+              <mesh
+                ref={winterSideFaceSmileRef}
+                geometry={
+                  nodes.Moving_Characters_Winter_side_face_smile.geometry
+                }
+                material={texture_1}
+                position={
+                  nodes.Moving_Characters_Winter_side_face_smile.position
+                }
+              />
+            </group>
           </AnimateMesh>
         </group>
       </group>
 
-      <group ref={springFrontCharacterRef} visible={false}>
-        <AnimateMesh
-          position={[0, 0, 0]}
-          animations={[
-            { property: "rotation", axis: "y", speed: 1, amplitude: 0.3 },
-            {
-              property: "position",
-              axis: "y",
-              speed: 2,
-              amplitude: 0.05,
-              base: 0.23,
-            },
-          ]}
-        >
-          <group
-            ref={springFrontCharacterInnerWrapperRef}
-            position={[0, -5, 0]}
+      <group ref={springFrontCharacterRef}>
+        <group ref={springFrontCharacterInnerWrapperRef} position={[0, -5, 0]}>
+          <AnimateMesh
+            position={[0, 0, 0]}
+            animations={[
+              { property: "rotation", axis: "y", speed: 1, amplitude: 0.3 },
+              {
+                property: "position",
+                axis: "y",
+                speed: 2,
+                amplitude: 0.05,
+                base: 0.23,
+              },
+            ]}
           >
-            <mesh
-              geometry={nodes.Moving_Characters_Spring_front.geometry}
-              material={texture_1}
-              position={nodes.Moving_Characters_Spring_front.position}
-            />
-          </group>
-        </AnimateMesh>
+            <group ref={springFrontCharacterSwapRef} position={[0, 0, 0]}>
+              <mesh
+                geometry={nodes.Moving_Characters_Spring_front.geometry}
+                material={texture_1}
+                position={nodes.Moving_Characters_Spring_front.position}
+              />
+            </group>
+          </AnimateMesh>
+        </group>
       </group>
 
       <group ref={springSideCharacterRef}>
@@ -388,35 +528,60 @@ export default function Model(props) {
               },
             ]}
           >
-            <mesh
-              geometry={nodes.Moving_Characters_Spring_side.geometry}
-              material={texture_1}
-              position={nodes.Moving_Characters_Spring_side.position}
-              rotation={nodes.Moving_Characters_Spring_side.rotation}
-              scale={nodes.Moving_Characters_Spring_side.scale}
-            />
-            <mesh
-              ref={springBackWheelRef}
-              geometry={nodes.Moving_Characters_Spring_side_back_wheel.geometry}
-              material={texture_1}
-              position={nodes.Moving_Characters_Spring_side_back_wheel.position}
-              rotation={nodes.Moving_Characters_Spring_side_back_wheel.rotation}
-              scale={nodes.Moving_Characters_Spring_side_back_wheel.scale}
-            />
-            <mesh
-              ref={springFrontWheelRef}
-              geometry={
-                nodes.Moving_Characters_Spring_side_front_wheel.geometry
-              }
-              material={texture_1}
-              position={
-                nodes.Moving_Characters_Spring_side_front_wheel.position
-              }
-              rotation={
-                nodes.Moving_Characters_Spring_side_front_wheel.rotation
-              }
-              scale={nodes.Moving_Characters_Spring_side_front_wheel.scale}
-            />
+            <group ref={springSideCharacterSwapRef} position={[0, -5, 0]}>
+              <mesh
+                geometry={nodes.Moving_Characters_Spring_side.geometry}
+                material={texture_1}
+                position={nodes.Moving_Characters_Spring_side.position}
+                rotation={nodes.Moving_Characters_Spring_side.rotation}
+                scale={nodes.Moving_Characters_Spring_side.scale}
+              />
+              <mesh
+                ref={springBackWheelRef}
+                geometry={
+                  nodes.Moving_Characters_Spring_side_back_wheel.geometry
+                }
+                material={texture_1}
+                position={
+                  nodes.Moving_Characters_Spring_side_back_wheel.position
+                }
+                rotation={
+                  nodes.Moving_Characters_Spring_side_back_wheel.rotation
+                }
+                scale={nodes.Moving_Characters_Spring_side_back_wheel.scale}
+              />
+              <mesh
+                ref={springFrontWheelRef}
+                geometry={
+                  nodes.Moving_Characters_Spring_side_front_wheel.geometry
+                }
+                material={texture_1}
+                position={
+                  nodes.Moving_Characters_Spring_side_front_wheel.position
+                }
+                rotation={
+                  nodes.Moving_Characters_Spring_side_front_wheel.rotation
+                }
+                scale={nodes.Moving_Characters_Spring_side_front_wheel.scale}
+              />
+              <mesh
+                ref={springSideFaceRef}
+                geometry={nodes.Moving_Characters_Spring_side_face.geometry}
+                material={texture_1}
+                position={nodes.Moving_Characters_Spring_side_face.position}
+                scale={nodes.Moving_Characters_Spring_side_face.scale}
+              />
+              <mesh
+                ref={springSideFaceSmileRef}
+                geometry={
+                  nodes.Moving_Characters_Spring_side_face_smile.geometry
+                }
+                material={texture_1}
+                position={
+                  nodes.Moving_Characters_Spring_side_face_smile.position
+                }
+              />
+            </group>
           </AnimateMesh>
         </group>
       </group>
