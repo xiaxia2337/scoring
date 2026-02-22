@@ -26,3 +26,4 @@ This repo contains code of Aimee's Papercraft Portfolio for a Codrops article an
 - Add some cool paper animations with shapekeys
 - TSL SHADERS YESSURRRRR Y NOT!! CHANGE PAPER COLOR ON BUTTOn
 - MAJOR RESPONSIVE ISSUES XDDD
+- Yo what if that butterfly on the string moved with string physics?????
