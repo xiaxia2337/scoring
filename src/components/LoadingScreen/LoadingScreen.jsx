@@ -166,12 +166,26 @@ const LoadingScreen = () => {
                 bottom: "15%",
                 transform: "translate(-50%, -50%)",
                 fontSize: "14px",
-                color: "rgb(255, 255, 255)",
+                color: "rgb(233, 233, 233)",
                 textDecoration: "underline",
               }}
             >
               See full list of credits here!!
             </a>
+
+            <div
+              className="instructions"
+              style={{
+                position: "absolute",
+                left: "50%",
+                bottom: "300px",
+                transform: "translate(-50%, -50%)",
+                fontSize: "16px",
+                color: "rgb(233, 233, 233)",
+              }}
+            >
+              Swipe/Scroll to navigate!
+            </div>
           </>
         )}
 
