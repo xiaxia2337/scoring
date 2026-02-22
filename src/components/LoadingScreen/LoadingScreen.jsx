@@ -10,6 +10,8 @@ const LoadingScreen = () => {
   const [maxProgress, setMaxProgress] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [gone, setGone] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
   const setIsExperienceReady = useExperienceStore(
     (state) => state.setIsExperienceReady,
   );
@@ -87,7 +89,11 @@ const LoadingScreen = () => {
               />
               <div
                 className="loading-bar-indicator"
-                style={{ left: `${maxProgress}%` }}
+                style={{
+                  left: `${maxProgress}%`,
+                  transform: "translate(-65px, -50%)",
+                  backgroundImage: `url("/images/${isHovered ? "head_smile" : "head"}.webp")`,
+                }}
               />
             </div>
             <h1 className="title">Aimee Wei's PaperCraft World</h1>
@@ -113,7 +119,12 @@ const LoadingScreen = () => {
         )}
 
         {isLoaded && !revealed && (
-          <button className="enter-button" onClick={() => setRevealed(true)}>
+          <button
+            className="enter-button"
+            onClick={() => setRevealed(true)}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+          >
             Enter
           </button>
         )}

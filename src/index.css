@@ -27,14 +27,14 @@ html {
   font-family: "Slime Box";
 }
 
-/* html {
+html {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
 html::-webkit-scrollbar {
   display: none;
-} */
+}
 
 @font-face {
   font-family: "Slime Box";
