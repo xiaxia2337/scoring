@@ -106,7 +106,7 @@ export default function Model(props) {
         amplitude={0.1}
         speed={2}
         property={"scale"}
-        offset={0.2}
+        offset={1.75}
         position={nodes.Scene_2_Spring_2_Baked_Slime.position}
         base={1.1}
       >
@@ -136,6 +136,7 @@ export default function Model(props) {
         amplitude={0.1}
         speed={2}
         property={"scale"}
+        offset={0.6}
         position={nodes.Scene_2_Spring_2_Baked_Gnome002.position}
         base={1.1}
       >
@@ -185,6 +186,7 @@ export default function Model(props) {
         amplitude={0.1}
         speed={2}
         property={"scale"}
+        offset={2}
         position={nodes.Scene_2_Spring_3_Baked_Duck.position}
         base={1.1}
       >
@@ -215,6 +217,7 @@ export default function Model(props) {
         position={nodes.Scene_2_Spring_3_Baked_Grass.position}
         property={"scale"}
         base={1.1}
+        offset={3}
       >
         <mesh
           geometry={nodes.Scene_2_Spring_3_Baked_Grass.geometry}
@@ -233,6 +236,7 @@ export default function Model(props) {
         <mesh
           geometry={nodes.Scene_2_Spring_3_Baked_Grass001.geometry}
           material={texture_3}
+          offset={1.5}
         />
       </AnimateMesh>
 
@@ -256,6 +260,7 @@ export default function Model(props) {
         speed={2.2}
         position={nodes.Scene_2_Spring_3_Baked_Grass003.position}
         property={"scale"}
+        offset={4.5}
         base={1.1}
       >
         <mesh
@@ -271,6 +276,7 @@ export default function Model(props) {
         property={"scale"}
         position={nodes.Scene_2_Spring_3_Baked_Flower.position}
         base={1.1}
+        offset={0.7}
       >
         <mesh
           geometry={nodes.Scene_2_Spring_3_Baked_Flower.geometry}
@@ -298,6 +304,7 @@ export default function Model(props) {
         property={"scale"}
         position={nodes.Scene_2_Spring_3_Baked_Flower001.position}
         base={1.1}
+        offset={1.2}
       >
         <mesh
           geometry={nodes.Scene_2_Spring_3_Baked_Flower001.geometry}
@@ -310,6 +317,7 @@ export default function Model(props) {
         amplitude={0.1}
         speed={2}
         property={"scale"}
+        offset={0.5}
         position={nodes.Scene_2_Spring_3_Baked002.position}
         base={1.1}
       >
@@ -324,6 +332,7 @@ export default function Model(props) {
         amplitude={0.1}
         speed={2}
         property={"scale"}
+        offset={0.5}
         position={nodes.Scene_2_Spring_3_Baked_Plant.position}
         base={1.1}
       >

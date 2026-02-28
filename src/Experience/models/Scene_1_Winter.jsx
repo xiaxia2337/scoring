@@ -158,18 +158,37 @@ export default function Model(props) {
         material={texture_3}
         position={nodes.Scene_1_Winter_3_Flame_2.position}
       />
-      <mesh
-        geometry={nodes["Scene_1_Winter_3_snowman-arm"].geometry}
-        material={texture_3}
+
+      <AnimateMesh
+        axis={"x"}
+        amplitude={0.5}
+        speed={2}
         position={[10.549, 1.388, -7.092]}
-      />
-      <mesh
-        geometry={
-          nodes["Scene_1_Winter_3_Bird_Baked-snowman-arm-left"].geometry
-        }
-        material={texture_3}
+        base={0}
+        offset={2.6}
+      >
+        <mesh
+          geometry={nodes["Scene_1_Winter_3_snowman-arm"].geometry}
+          material={texture_3}
+        />
+      </AnimateMesh>
+
+      <AnimateMesh
+        axis={"x"}
+        amplitude={0.5}
+        speed={2}
         position={[10.209, 1.429, -7.59]}
-      />
+        base={0}
+        offset={0}
+      >
+        <mesh
+          geometry={
+            nodes["Scene_1_Winter_3_Bird_Baked-snowman-arm-left"].geometry
+          }
+          material={texture_3}
+        />
+      </AnimateMesh>
+
       <mesh
         geometry={nodes.Scene_1_Winter_3_Bird_actual.geometry}
         material={texture_3}

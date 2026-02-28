@@ -8,6 +8,7 @@ import { useKTX2Texture } from "../utils/ktxLoader";
 import React, { useRef } from "react";
 import { useGLTF } from "@react-three/drei";
 import gsap from "gsap";
+import { AnimateMesh } from "../components/AnimateMesh";
 
 export default function Model(props) {
   const { nodes, materials } = useGLTF(
@@ -132,26 +133,66 @@ export default function Model(props) {
         ]}
       />
 
-      <mesh
-        geometry={nodes.Scene_3_Summer_2_seaweed.geometry}
-        material={texture_2}
+      <AnimateMesh
+        axis={"y"}
+        amplitude={0.1}
+        speed={2.3}
+        property={"scale"}
         position={nodes.Scene_3_Summer_2_seaweed.position}
-      />
-      <mesh
-        geometry={nodes.Scene_3_Summer_2001_seaweed.geometry}
-        material={texture_2}
+        base={1.1}
+        offset={2.36}
+      >
+        <mesh
+          geometry={nodes.Scene_3_Summer_2_seaweed.geometry}
+          material={texture_2}
+        />
+      </AnimateMesh>
+
+      <AnimateMesh
+        axis={"y"}
+        amplitude={0.3}
+        speed={2.5}
+        property={"scale"}
         position={nodes.Scene_3_Summer_2001_seaweed.position}
-      />
-      <mesh
-        geometry={nodes.Scene_3_Summer_2002_seaweed.geometry}
-        material={texture_2}
+        base={1.1}
+        offset={2.36}
+      >
+        <mesh
+          geometry={nodes.Scene_3_Summer_2001_seaweed.geometry}
+          material={texture_2}
+        />
+      </AnimateMesh>
+
+      <AnimateMesh
+        axis={"y"}
+        amplitude={0.1}
+        speed={2.3}
+        property={"scale"}
         position={nodes.Scene_3_Summer_2002_seaweed.position}
-      />
-      <mesh
-        geometry={nodes.Scene_3_Summer_2003_seaweed.geometry}
-        material={texture_2}
+        base={1.1}
+        offset={0.73}
+      >
+        <mesh
+          geometry={nodes.Scene_3_Summer_2002_seaweed.geometry}
+          material={texture_2}
+        />
+      </AnimateMesh>
+
+      <AnimateMesh
+        axis={"y"}
+        amplitude={0.1}
+        speed={2.3}
+        property={"scale"}
         position={nodes.Scene_3_Summer_2003_seaweed.position}
-      />
+        base={1.1}
+        offset={2.36}
+      >
+        <mesh
+          geometry={nodes.Scene_3_Summer_2003_seaweed.geometry}
+          material={texture_2}
+        />
+      </AnimateMesh>
+
       <mesh
         geometry={nodes.Scene_3_Summer_2001_fish.geometry}
         material={texture_2}
@@ -190,11 +231,20 @@ export default function Model(props) {
         ]}
       />
 
-      <mesh
-        geometry={nodes.Scene_3_Summer_4_Bike_Sign_Summer_3_2_Crab.geometry}
-        material={texture_4}
+      <AnimateMesh
+        axis={"y"}
+        amplitude={0.05}
+        speed={5}
+        property={"scale"}
         position={nodes.Scene_3_Summer_4_Bike_Sign_Summer_3_2_Crab.position}
-      />
+        base={1.1}
+        offset={2.36}
+      >
+        <mesh
+          geometry={nodes.Scene_3_Summer_4_Bike_Sign_Summer_3_2_Crab.geometry}
+          material={texture_4}
+        />
+      </AnimateMesh>
       <mesh
         geometry={
           nodes.Scene_3_Summer_4_Bike_Sign_Summer_3_2_Dragonair.geometry
@@ -213,15 +263,25 @@ export default function Model(props) {
           nodes.Scene_3_Summer_4_Bike_Sign_Summer_3_2_Sand_Castle_Gate.position
         }
       />
-      <mesh
-        geometry={
-          nodes.Scene_3_Summer_4_Bike_Sign_Summer_3_2001_umbrella.geometry
-        }
-        material={texture_4}
+
+      <AnimateMesh
+        axis={"y"}
+        amplitude={0.1}
+        speed={4}
         position={
           nodes.Scene_3_Summer_4_Bike_Sign_Summer_3_2001_umbrella.position
         }
-      />
+        base={0}
+        offset={2.36}
+      >
+        <mesh
+          geometry={
+            nodes.Scene_3_Summer_4_Bike_Sign_Summer_3_2001_umbrella.geometry
+          }
+          material={texture_4}
+        />
+      </AnimateMesh>
+
       <mesh
         geometry={nodes.Scene_3_Summer_4_Bike_Sign_Summer_3_2.geometry}
         material={texture_4}
