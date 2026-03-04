@@ -272,12 +272,14 @@ export default function Model(props) {
           y: -5,
           duration: 0.4,
           ease: "back.in(1.2)",
+          overwrite: true,
         });
         gsap.to(winterSideCharacterSwapRef.current.position, {
           y: 0,
           duration: 0.6,
           delay: 0.2,
           ease: "back.out(1.2)",
+          overwrite: true,
         });
       }
       if (
@@ -290,12 +292,14 @@ export default function Model(props) {
           y: -5,
           duration: 0.4,
           ease: "back.in(1.2)",
+          overwrite: true,
         });
         gsap.to(springSideCharacterSwapRef.current.position, {
           y: 0,
           duration: 0.6,
           delay: 0.2,
           ease: "back.out(1.2)",
+          overwrite: true,
         });
       }
 
