@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评分系统 - 首页</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        .btn-primary {
+            background: #fff;
+            color: #667eea;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        .btn-info:hover {
+            background: #138496;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .competition-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .competition-item:last-child {
+            border-bottom: none;
+        }
+        .competition-info h4 {
+            margin: 0;
+            color: #333;
+        }
+        .competition-info p {
+            margin: 5px 0 0 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .no-data {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+            padding: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏆 评分系统</h1>
+            <p>支持多设备、多网络实时评分</p>
+            <a href="/create" class="btn btn-primary">创建新比赛</a>
+        </div>
+        
+        <div class="card">
+            <h3>📋 历史比赛记录</h3>
+            {% if competitions %}
+                {% for comp in competitions %}
+                    <div class="competition-item">
+                        <div class="competition-info">
+                            <h4>{{ comp.name }}</h4>
+                            <p>{{ comp.num_groups }}组 | {{ comp.num_judges }}评委/组 | {{ comp.num_players }}选手/组 | 创建于 {{ comp.created_at }}</p>
+                        </div>
+                        <div>
+                            <a href="/judge_login/{{ comp.id }}" class="btn btn-success">开始评分</a>
+                            <a href="/statistics/{{ comp.id }}" class="btn btn-info">查看统计</a>
+                            <a href="/delete/{{ comp.id }}" class="btn btn-danger" onclick="return confirm('确定删除该比赛及所有数据？')">删除</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 30px; color: #999;">
+                    暂无比赛记录，点击上方按钮创建新比赛
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="card">
+            <h3>📱 使用说明</h3>
+            <ul>
+                <li><strong>创建比赛:</strong> 设置比赛名称、组数、评委数、选手数</li>
+                <li><strong>设置名称:</strong> 为组别、评委、选手、评分项设置自定义名称</li>
+                <li><strong>评委登录:</strong> 选择组别和评委编号后进入打分页面</li>
+                <li><strong>实时评分:</strong> 在任意设备上评分，数据实时同步到后台</li>
+                <li><strong>查看统计:</strong> 实时查看评分统计和平均分</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

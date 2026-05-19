@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打分页面</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .header h2 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .header p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .player-selector {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .player-selector h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .player-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+        }
+        .player-btn {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .player-btn:hover {
+            border-color: #1abc9c;
+            background: #f0fff9;
+        }
+        .player-btn.active {
+            border-color: #1abc9c;
+            background: #1abc9c;
+            color: white;
+        }
+        .player-btn.scored {
+            border-color: #27ae60;
+            background: #27ae60;
+            color: white;
+        }
+        .scoring-area {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .scoring-area h3 {
+            margin-top: 0;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+        }
+        .item-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        .item-card h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 13px;
+        }
+        .stars {
+            display: flex;
+            justify-content: center;
+            gap: 3px;
+        }
+        .star {
+            font-size: 28px;
+            cursor: pointer;
+            color: #ddd;
+            transition: color 0.2s;
+        }
+        .star:hover,
+        .star.active {
+            color: #f39c12;
+        }
+        .submit-area {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .total-score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+        .btn {
+            padding: 12px 40px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(26, 188, 156, 0.4);
+        }
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #27ae60;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-weight: bold;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>🏆 {{ comp.name }}</h2>
+            <p><strong>组别:</strong> {{ group_name }} | <strong>评委:</strong> {{ judge_name }}</p>
+            <p><strong>当前选手:</strong> <span id="current-player">-</span></p>
+        </div>
+        
+        <div class="player-selector">
+            <h3>选择打分选手</h3>
+            <div class="player-grid" id="player-grid">
+                {% for p_num, p_name in players.items() %}
+                    <button class="player-btn" data-player="{{ p_num }}">{{ p_name }}</button>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="scoring-area">
+            <h3>⭐ 评分项 (1-5星)</h3>
+            <div class="items-grid" id="items-grid">
+                {% for i_num, i_name in items.items() %}
+                    <div class="item-card">
+                        <h4>{{ i_name }}</h4>
+                        <div class="stars">
+                            {% for s in range(1, 6) %}
+                                <span class="star" data-item="{{ i_num }}" data-score="{{ s }}">★</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div class="submit-area">
+                <div class="total-score">总分: <span id="total-score">0</span> / 100</div>
+                <button class="btn btn-primary" id="submit-btn">提交评分</button>
+                <a href="/" class="btn btn-secondary">退出登录</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast">评分提交成功！</div>
+    
+    <script>
+        const compId = {{ comp.id }};
+        const groupNum = {{ group_num }};
+        const judgeNum = {{ judge_num }};
+        
+        let currentPlayer = null;
+        const scores = {};
+        
+        for (let i = 1; i <= 20; i++) {
+            scores[i] = 3;
+        }
+        
+        document.querySelectorAll('.player-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.player-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentPlayer = parseInt(btn.dataset.player);
+                document.getElementById('current-player').textContent = btn.textContent;
+                
+                fetch(`/api/check_score/${compId}/${groupNum}/${currentPlayer}/${judgeNum}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.exists) {
+                            data.scores.forEach((score, idx) => {
+                                scores[idx + 1] = score;
+                                updateStars(idx + 1, score);
+                            });
+                            calculateTotal();
+                            btn.classList.add('scored');
+                        } else {
+                            for (let i = 1; i <= 20; i++) {
+                                scores[i] = 3;
+                                updateStars(i, 3);
+                            }
+                            calculateTotal();
+                            btn.classList.remove('scored');
+                        }
+                    });
+            });
+        });
+        
+        document.querySelectorAll('.star').forEach(star => {
+            star.addEventListener('click', () => {
+                const itemNum = parseInt(star.dataset.item);
+                const score = parseInt(star.dataset.score);
+                scores[itemNum] = score;
+                updateStars(itemNum, score);
+                calculateTotal();
+            });
+        });
+        
+        function updateStars(itemNum, score) {
+            document.querySelectorAll(`.star[data-item="${itemNum}"]`).forEach((star, idx) => {
+                if (idx < score) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+        
+        function calculateTotal() {
+            const total = Object.values(scores).reduce((sum, val) => sum + val, 0);
+            document.getElementById('total-score').textContent = total;
+        }
+        
+        document.getElementById('submit-btn').addEventListener('click', () => {
+            if (!currentPlayer) {
+                alert('请先选择选手');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('player_num', currentPlayer);
+            for (let i = 1; i <= 20; i++) {
+                formData.append(`score_${i}`, scores[i]);
+            }
+            
+            fetch('/scoring', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.querySelector(`.player-btn[data-player="${currentPlayer}"]`).classList.add('scored');
+                    showToast('评分提交成功！');
+                    
+                    const playerBtns = document.querySelectorAll('.player-btn');
+                    let currentIdx = -1;
+                    playerBtns.forEach((btn, idx) => {
+                        if (parseInt(btn.dataset.player) === currentPlayer) {
+                            currentIdx = idx;
+                        }
+                    });
+                    
+                    if (currentIdx < playerBtns.length - 1) {
+                        setTimeout(() => {
+                            playerBtns[currentIdx + 1].click();
+                        }, 500);
+                    }
+                }
+            });
+        });
+        
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 2000);
+        }
+        
+        calculateTotal();
+    </script>
+</body>
+</html>
