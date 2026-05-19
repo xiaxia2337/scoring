@@ -1,73 +1,135 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, send_file
-import sqlite3
 import os
 from datetime import datetime
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Border, Side, PatternFill, Font, Alignment
 import tempfile
 
+try:
+    import psycopg2
+    import psycopg2.extras
+    DB_TYPE = 'postgres'
+except ImportError:
+    import sqlite3
+    DB_TYPE = 'sqlite'
+
 app = Flask(__name__)
 app.secret_key = 'scoring_system_secret_key'
 
-DATABASE = '/tmp/scoring_web.db'
-
 def get_db():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
+    if DB_TYPE == 'postgres':
+        conn = psycopg2.connect(
+            host=os.environ.get('SUPABASE_HOST'),
+            database=os.environ.get('SUPABASE_DB'),
+            user=os.environ.get('SUPABASE_USER'),
+            password=os.environ.get('SUPABASE_PASSWORD'),
+            port=os.environ.get('SUPABASE_PORT', '5432')
+        )
+        return conn
+    else:
+        DATABASE = os.environ.get('DATABASE_URL', '/tmp/scoring_web.db')
+        conn = sqlite3.connect(DATABASE)
+        conn.row_factory = sqlite3.Row
+        return conn
 
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
     
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS contests (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            date TEXT NOT NULL,
-            status INTEGER DEFAULT 0,
-            judge_password TEXT NOT NULL,
-            created_at TEXT NOT NULL
-        )
-    ''')
-    
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS contestants (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            contest_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            team TEXT NOT NULL,
-            number INTEGER NOT NULL,
-            FOREIGN KEY (contest_id) REFERENCES contests(id)
-        )
-    ''')
-    
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS scores (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            contest_id INTEGER NOT NULL,
-            contestant_id INTEGER NOT NULL,
-            judge_name TEXT NOT NULL,
-            score1 REAL,
-            score2 REAL,
-            score3 REAL,
-            score4 REAL,
-            score5 REAL,
-            total_score REAL,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (contest_id) REFERENCES contests(id),
-            FOREIGN KEY (contestant_id) REFERENCES contestants(id)
-        )
-    ''')
-    
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS judges (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            contest_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            FOREIGN KEY (contest_id) REFERENCES contests(id)
-        )
-    ''')
+    if DB_TYPE == 'postgres':
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS contests (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                date TEXT NOT NULL,
+                status INTEGER DEFAULT 0,
+                judge_password TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS contestants (
+                id SERIAL PRIMARY KEY,
+                contest_id INTEGER NOT NULL REFERENCES contests(id),
+                name TEXT NOT NULL,
+                team TEXT NOT NULL,
+                number INTEGER NOT NULL
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS scores (
+                id SERIAL PRIMARY KEY,
+                contest_id INTEGER NOT NULL REFERENCES contests(id),
+                contestant_id INTEGER NOT NULL REFERENCES contestants(id),
+                judge_name TEXT NOT NULL,
+                score1 REAL,
+                score2 REAL,
+                score3 REAL,
+                score4 REAL,
+                score5 REAL,
+                total_score REAL,
+                created_at TEXT NOT NULL
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS judges (
+                id SERIAL PRIMARY KEY,
+                contest_id INTEGER NOT NULL REFERENCES contests(id),
+                name TEXT NOT NULL
+            )
+        ''')
+    else:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS contests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                date TEXT NOT NULL,
+                status INTEGER DEFAULT 0,
+                judge_password TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS contestants (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                contest_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                team TEXT NOT NULL,
+                number INTEGER NOT NULL,
+                FOREIGN KEY (contest_id) REFERENCES contests(id)
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS scores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                contest_id INTEGER NOT NULL,
+                contestant_id INTEGER NOT NULL,
+                judge_name TEXT NOT NULL,
+                score1 REAL,
+                score2 REAL,
+                score3 REAL,
+                score4 REAL,
+                score5 REAL,
+                total_score REAL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (contest_id) REFERENCES contests(id),
+                FOREIGN KEY (contestant_id) REFERENCES contestants(id)
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS judges (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                contest_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                FOREIGN KEY (contest_id) REFERENCES contests(id)
+            )
+        ''')
     
     conn.commit()
     conn.close()
@@ -77,7 +139,7 @@ init_db()
 @app.route('/')
 def index():
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor) if DB_TYPE == 'postgres' else conn.cursor()
     cursor.execute('SELECT * FROM contests ORDER BY created_at DESC')
     contests = cursor.fetchall()
     conn.close()
@@ -92,11 +154,20 @@ def create():
         
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO contests (name, date, status, judge_password, created_at)
-            VALUES (?, ?, 0, ?, ?)
-        ''', (name, date, judge_password, datetime.now().isoformat()))
-        contest_id = cursor.lastrowid
+        
+        if DB_TYPE == 'postgres':
+            cursor.execute('''
+                INSERT INTO contests (name, date, status, judge_password, created_at)
+                VALUES (%s, %s, 0, %s, %s) RETURNING id
+            ''', (name, date, judge_password, datetime.now().isoformat()))
+            contest_id = cursor.fetchone()[0]
+        else:
+            cursor.execute('''
+                INSERT INTO contests (name, date, status, judge_password, created_at)
+                VALUES (?, ?, 0, ?, ?)
+            ''', (name, date, judge_password, datetime.now().isoformat()))
+            contest_id = cursor.lastrowid
+        
         conn.commit()
         
         contestants = request.form.getlist('contestant_name[]')
@@ -105,10 +176,16 @@ def create():
         
         for i in range(len(contestants)):
             if contestants[i].strip():
-                cursor.execute('''
-                    INSERT INTO contestants (contest_id, name, team, number)
-                    VALUES (?, ?, ?, ?)
-                ''', (contest_id, contestants[i].strip(), teams[i].strip(), int(numbers[i])))
+                if DB_TYPE == 'postgres':
+                    cursor.execute('''
+                        INSERT INTO contestants (contest_id, name, team, number)
+                        VALUES (%s, %s, %s, %s)
+                    ''', (contest_id, contestants[i].strip(), teams[i].strip(), int(numbers[i])))
+                else:
+                    cursor.execute('''
+                        INSERT INTO contestants (contest_id, name, team, number)
+                        VALUES (?, ?, ?, ?)
+                    ''', (contest_id, contestants[i].strip(), teams[i].strip(), int(numbers[i])))
         
         conn.commit()
         conn.close()
@@ -120,11 +197,20 @@ def create():
 @app.route('/contest/<int:contest_id>')
 def contest_detail(contest_id):
     conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor) if DB_TYPE == 'postgres' else conn.cursor()
+    
+    if DB_TYPE == 'postgres':
+        cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
+    else:
+        cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
+    
     contest = cursor.fetchone()
     
-    cursor.execute('SELECT * FROM contestants WHERE contest_id = ? ORDER BY number', (contest_id,))
+    if DB_TYPE == 'postgres':
+        cursor.execute('SELECT * FROM contestants WHERE contest_id = %s ORDER BY number', (contest_id,))
+    else:
+        cursor.execute('SELECT * FROM contestants WHERE contest_id = ? ORDER BY number', (contest_id,))
+    
     contestants = cursor.fetchall()
     
     conn.close()
@@ -136,8 +222,13 @@ def judge_login(contest_id):
         password = request.form['password']
         
         conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor) if DB_TYPE == 'postgres' else conn.cursor()
+        
+        if DB_TYPE == 'postgres':
+            cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
+        else:
+            cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
+        
         contest = cursor.fetchone()
         
         if contest and contest['judge_password'] == password:
@@ -155,12 +246,20 @@ def scoring(contest_id):
         return redirect(url_for('judge_login', contest_id=contest_id))
     
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor) if DB_TYPE == 'postgres' else conn.cursor()
     
-    cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
+    if DB_TYPE == 'postgres':
+        cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
+    else:
+        cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
+    
     contest = cursor.fetchone()
     
-    cursor.execute('SELECT * FROM contestants WHERE contest_id = ? ORDER BY number', (contest_id,))
+    if DB_TYPE == 'postgres':
+        cursor.execute('SELECT * FROM contestants WHERE contest_id = %s ORDER BY number', (contest_id,))
+    else:
+        cursor.execute('SELECT * FROM contestants WHERE contest_id = ? ORDER BY number', (contest_id,))
+    
     contestants = cursor.fetchall()
     
     judge_name = session.get('judge_name', '评委')
@@ -177,10 +276,16 @@ def scoring(contest_id):
             score5 = float(request.form.get(f'score5_{contestant["id"]}', 0))
             total = (score1 + score2 + score3 + score4 + score5) / 5
             
-            cursor.execute('''
-                INSERT INTO scores (contest_id, contestant_id, judge_name, score1, score2, score3, score4, score5, total_score, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (contest_id, contestant['id'], judge_name, score1, score2, score3, score4, score5, total, datetime.now().isoformat()))
+            if DB_TYPE == 'postgres':
+                cursor.execute('''
+                    INSERT INTO scores (contest_id, contestant_id, judge_name, score1, score2, score3, score4, score5, total_score, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (contest_id, contestant['id'], judge_name, score1, score2, score3, score4, score5, total, datetime.now().isoformat()))
+            else:
+                cursor.execute('''
+                    INSERT INTO scores (contest_id, contestant_id, judge_name, score1, score2, score3, score4, score5, total_score, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (contest_id, contestant['id'], judge_name, score1, score2, score3, score4, score5, total, datetime.now().isoformat()))
         
         conn.commit()
         conn.close()
@@ -194,17 +299,29 @@ def scoring(contest_id):
 @app.route('/statistics/<int:contest_id>')
 def statistics(contest_id):
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor) if DB_TYPE == 'postgres' else conn.cursor()
     
-    cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
+    if DB_TYPE == 'postgres':
+        cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
+    else:
+        cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
+    
     contest = cursor.fetchone()
     
-    cursor.execute('SELECT * FROM contestants WHERE contest_id = ? ORDER BY number', (contest_id,))
+    if DB_TYPE == 'postgres':
+        cursor.execute('SELECT * FROM contestants WHERE contest_id = %s ORDER BY number', (contest_id,))
+    else:
+        cursor.execute('SELECT * FROM contestants WHERE contest_id = ? ORDER BY number', (contest_id,))
+    
     contestants = cursor.fetchall()
     
     contestant_stats = []
     for contestant in contestants:
-        cursor.execute('SELECT * FROM scores WHERE contestant_id = ?', (contestant['id'],))
+        if DB_TYPE == 'postgres':
+            cursor.execute('SELECT * FROM scores WHERE contestant_id = %s', (contestant['id'],))
+        else:
+            cursor.execute('SELECT * FROM scores WHERE contestant_id = ?', (contestant['id'],))
+        
         scores = cursor.fetchall()
         
         if scores:
@@ -237,12 +354,20 @@ def statistics(contest_id):
 @app.route('/export/<int:contest_id>')
 def export_excel(contest_id):
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor) if DB_TYPE == 'postgres' else conn.cursor()
     
-    cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
+    if DB_TYPE == 'postgres':
+        cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
+    else:
+        cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
+    
     contest = cursor.fetchone()
     
-    cursor.execute('SELECT * FROM contestants WHERE contest_id = ? ORDER BY number', (contest_id,))
+    if DB_TYPE == 'postgres':
+        cursor.execute('SELECT * FROM contestants WHERE contest_id = %s ORDER BY number', (contest_id,))
+    else:
+        cursor.execute('SELECT * FROM contestants WHERE contest_id = ? ORDER BY number', (contest_id,))
+    
     contestants = cursor.fetchall()
     
     wb = Workbook()
@@ -269,7 +394,11 @@ def export_excel(contest_id):
         cell.border = thin_border
     
     for i, contestant in enumerate(contestants, 1):
-        cursor.execute('SELECT * FROM scores WHERE contestant_id = ?', (contestant['id'],))
+        if DB_TYPE == 'postgres':
+            cursor.execute('SELECT * FROM scores WHERE contestant_id = %s', (contestant['id'],))
+        else:
+            cursor.execute('SELECT * FROM scores WHERE contestant_id = ?', (contestant['id'],))
+        
         scores = cursor.fetchall()
         
         if scores:
@@ -316,10 +445,16 @@ def delete_contest(contest_id):
     conn = get_db()
     cursor = conn.cursor()
     
-    cursor.execute('DELETE FROM scores WHERE contest_id = ?', (contest_id,))
-    cursor.execute('DELETE FROM contestants WHERE contest_id = ?', (contest_id,))
-    cursor.execute('DELETE FROM judges WHERE contest_id = ?', (contest_id,))
-    cursor.execute('DELETE FROM contests WHERE id = ?', (contest_id,))
+    if DB_TYPE == 'postgres':
+        cursor.execute('DELETE FROM scores WHERE contest_id = %s', (contest_id,))
+        cursor.execute('DELETE FROM contestants WHERE contest_id = %s', (contest_id,))
+        cursor.execute('DELETE FROM judges WHERE contest_id = %s', (contest_id,))
+        cursor.execute('DELETE FROM contests WHERE id = %s', (contest_id,))
+    else:
+        cursor.execute('DELETE FROM scores WHERE contest_id = ?', (contest_id,))
+        cursor.execute('DELETE FROM contestants WHERE contest_id = ?', (contest_id,))
+        cursor.execute('DELETE FROM judges WHERE contest_id = ?', (contest_id,))
+        cursor.execute('DELETE FROM contests WHERE id = ?', (contest_id,))
     
     conn.commit()
     conn.close()
@@ -330,7 +465,12 @@ def delete_contest(contest_id):
 def start_contest(contest_id):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute('UPDATE contests SET status = 1 WHERE id = ?', (contest_id,))
+    
+    if DB_TYPE == 'postgres':
+        cursor.execute('UPDATE contests SET status = 1 WHERE id = %s', (contest_id,))
+    else:
+        cursor.execute('UPDATE contests SET status = 1 WHERE id = ?', (contest_id,))
+    
     conn.commit()
     conn.close()
     return redirect(url_for('index'))
@@ -339,7 +479,12 @@ def start_contest(contest_id):
 def end_contest(contest_id):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute('UPDATE contests SET status = 2 WHERE id = ?', (contest_id,))
+    
+    if DB_TYPE == 'postgres':
+        cursor.execute('UPDATE contests SET status = 2 WHERE id = %s', (contest_id,))
+    else:
+        cursor.execute('UPDATE contests SET status = 2 WHERE id = ?', (contest_id,))
+    
     conn.commit()
     conn.close()
     return redirect(url_for('index'))
