@@ -7,10 +7,13 @@ from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Border, Side, PatternFill, Font, Alignment
 import tempfile
 
-app = Flask(__name__)
+template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+app = Flask(__name__, template_folder=template_dir)
 app.secret_key = 'scoring_system_secret_key'
 
-if getattr(sys, 'frozen', False):
+if os.environ.get('VERCEL'):
+    DATABASE = '/tmp/scoring_web.db'
+elif getattr(sys, 'frozen', False):
     DATABASE = os.path.join(os.path.dirname(sys.executable), 'scoring_web.db')
 else:
     DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scoring_web.db')

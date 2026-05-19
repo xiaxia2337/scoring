@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评委登录</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .form-container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 450px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+        }
+        .comp-info {
+            text-align: center;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        .comp-info p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+            background: white;
+        }
+        .form-group select:focus {
+            outline: none;
+            border-color: #e74c3c;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(231, 76, 60, 0.4);
+        }
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+            margin-top: 10px;
+        }
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>👨‍⚖️ 评委登录</h2>
+        <div class="comp-info">
+            <p style="font-weight: bold; color: #333;">{{ comp.name }}</p>
+            <p>{{ comp.num_groups }}组 | {{ comp.num_judges }}评委/组 | {{ comp.num_players }}选手/组</p>
+        </div>
+        <form method="POST">
+            <div class="form-group">
+                <label for="group_num">选择组别:</label>
+                <select id="group_num" name="group_num" required>
+                    {% for g in range(1, comp.num_groups + 1) %}
+                        <option value="{{ g }}">{{ groups.get(g, '第' + g|string + '组') }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="judge_num">选择评委:</label>
+                <select id="judge_num" name="judge_num" required>
+                    {% for j in range(1, comp.num_judges + 1) %}
+                        <option value="{{ j }}">{{ judges.get(j, '评委' + j|string) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">进入打分</button>
+            <a href="/" class="btn btn-secondary">返回首页</a>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置名称</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2em;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .input-item {
+            flex: 1;
+            min-width: 150px;
+        }
+        .input-item label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+            font-size: 14px;
+        }
+        .input-item input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+        .input-item input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        .tab-btn:not(.active) {
+            background: white;
+            color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📝 设置自定义名称</h1>
+            <p>比赛名称: {{ comp.name }}</p>
+        </div>
+        
+        <div class="card" style="background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);">
+            <h3 style="color: white; border-bottom-color: white;">📥 Excel导入名称</h3>
+            <p style="color: white; font-size: 14px; margin-bottom: 15px;">
+                支持导入评委姓名、组别名称、选手姓名、评分项名称
+            </p>
+            <form id="import-form" action="/import_excel/{{ comp.id }}" method="POST" enctype="multipart/form-data">
+                <input type="file" name="file" accept=".xlsx" style="display: none;" id="file-input">
+                <button type="button" class="btn" style="background: white; color: #1abc9c; margin-right: 10px;" onclick="document.getElementById('file-input').click();">
+                    选择Excel文件
+                </button>
+                <button type="submit" class="btn" style="background: #f39c12; color: white;">
+                    开始导入
+                </button>
+            </form>
+            <div id="import-result" style="margin-top: 15px; display: none; padding: 10px; border-radius: 6px;"></div>
+            <div style="margin-top: 20px; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px;">
+                <h4 style="color: white; margin-top: 0;">Excel文件格式要求</h4>
+                <ul style="color: white; font-size: 13px; margin: 10px 0; padding-left: 20px;">
+                    <li><strong>组别表</strong> (Sheet名: 组别): 组别编号、组别名称</li>
+                    <li><strong>评委表</strong> (Sheet名: 评委): 评委编号、评委姓名</li>
+                    <li><strong>选手表</strong> (Sheet名: 选手): 组别、选手编号、选手姓名</li>
+                    <li><strong>评分项表</strong> (Sheet名: 评分项): 项目编号、项目名称</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>选择设置项</h3>
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="showTab('group')">组别名称</button>
+                <button class="tab-btn" onclick="showTab('judge')">评委姓名</button>
+                <button class="tab-btn" onclick="showTab('player')">选手姓名</button>
+                <button class="tab-btn" onclick="showTab('item')">评分项名称</button>
+            </div>
+            
+            <!-- 组别名称 -->
+            <div id="group" class="tab-content active">
+                <form method="POST">
+                    <input type="hidden" name="name_type" value="group">
+                    <div class="form-group">
+                        {% for g in range(1, comp.num_groups + 1) %}
+                            <div class="input-item">
+                                <label>组别 {{ g }}:</label>
+                                <input type="text" name="group_{{ g }}" value="第{{ g }}组">
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存组别名称</button>
+                </form>
+            </div>
+            
+            <!-- 评委姓名 -->
+            <div id="judge" class="tab-content">
+                <form method="POST">
+                    <input type="hidden" name="name_type" value="judge">
+                    <div class="form-group">
+                        {% for j in range(1, comp.num_judges + 1) %}
+                            <div class="input-item">
+                                <label>评委 {{ j }}:</label>
+                                <input type="text" name="judge_{{ j }}" value="评委{{ j }}">
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存评委姓名</button>
+                </form>
+            </div>
+            
+            <!-- 选手姓名 -->
+            <div id="player" class="tab-content">
+                {% for g in range(1, comp.num_groups + 1) %}
+                    <h4>第{{ g }}组选手</h4>
+                    <form method="POST">
+                        <input type="hidden" name="name_type" value="player">
+                        <div class="form-group">
+                            {% for p in range(1, comp.num_players + 1) %}
+                                <div class="input-item">
+                                    <label>选手 {{ p }}:</label>
+                                    <input type="text" name="player_{{ g }}_{{ p }}" value="选手{{ p }}">
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <button type="submit" class="btn btn-primary">保存第{{ g }}组选手姓名</button>
+                    </form>
+                    <hr>
+                {% endfor %}
+            </div>
+            
+            <!-- 评分项名称 -->
+            <div id="item" class="tab-content">
+                <form method="POST">
+                    <input type="hidden" name="name_type" value="item">
+                    <div class="form-group">
+                        {% for i in range(1, 21) %}
+                            <div class="input-item">
+                                <label>评分项 {{ i }}:</label>
+                                <input type="text" name="item_{{ i }}" value="项{{ i }}">
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存评分项名称</button>
+                </form>
+            </div>
+        </div>
+        
+        <div style="text-align: center;">
+            <a href="/judge_login/{{ comp.id }}" class="btn btn-success">开始评分</a>
+            <a href="/" class="btn btn-secondary">返回首页</a>
+        </div>
+    </div>
+    
+    <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+        
+        document.getElementById('import-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const resultDiv = document.getElementById('import-result');
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.style.display = 'block';
+                    resultDiv.style.background = '#27ae60';
+                    resultDiv.style.color = 'white';
+                    resultDiv.textContent = data.message;
+                } else {
+                    resultDiv.style.display = 'block';
+                    resultDiv.style.background = '#e74c3c';
+                    resultDiv.style.color = 'white';
+                    resultDiv.textContent = data.message;
+                }
+                
+                setTimeout(() => {
+                    resultDiv.style.display = 'none';
+                }, 3000);
+            });
+        });
+        
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name;
+            if (fileName) {
+                alert(`已选择文件: ${fileName}`);
+            }
+        });
+    </script>
+</body>
+</html>
