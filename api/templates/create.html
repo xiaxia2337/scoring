@@ -123,7 +123,15 @@
         <form method="POST" id="competition-form">
             <div class="form-group">
                 <label for="name">比赛名称:</label>
-                <input type="text" id="name" name="name" placeholder="请输入比赛名称" value="未命名比赛">
+                <input type="text" id="name" name="name" placeholder="请输入比赛名称" value="未命名比赛" required>
+            </div>
+            <div class="form-group">
+                <label for="date">比赛日期:</label>
+                <input type="date" id="date" name="date" required>
+            </div>
+            <div class="form-group">
+                <label for="judge_password">评委密码:</label>
+                <input type="password" id="judge_password" name="judge_password" placeholder="评委登录密码" value="123456" required>
             </div>
             <div class="form-group">
                 <label for="num_groups">组数 (N):</label>
