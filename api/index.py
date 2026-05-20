@@ -424,18 +424,13 @@ def judge_login(contest_id):
         conn.close()
         
         if request.method == 'POST':
-            password = request.form['password']
-            
-            if contest and contest['judge_password'] == password:
-                session['judge_contest_id'] = contest_id
-                session['judge_logged_in'] = True
-                session['judge_group'] = request.form.get('group_num', '1')
-                session['judge_num'] = request.form.get('judge_num', '1')
-                return redirect(url_for('scoring', contest_id=contest_id))
-            
-            return render_template('judge_login.html', comp=contest, groups=groups, judges=judges, error='密码错误')
+            session['judge_contest_id'] = contest_id
+            session['judge_logged_in'] = True
+            session['judge_group'] = request.form.get('group_num', '1')
+            session['judge_num'] = request.form.get('judge_num', '1')
+            return redirect(url_for('scoring', contest_id=contest_id))
         
-        return render_template('judge_login.html', comp=contest, groups=groups, judges=judges, error=None)
+        return render_template('judge_login.html', comp=contest, groups=groups, judges=judges)
     except Exception as e:
         return f"Error: {str(e)}", 500
 

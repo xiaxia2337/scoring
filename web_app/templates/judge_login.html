@@ -63,20 +63,6 @@
             outline: none;
             border-color: #e74c3c;
         }
-        .form-group input[type="password"] {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-            box-sizing: border-box;
-            background: white;
-        }
-        .form-group input[type="password"]:focus {
-            outline: none;
-            border-color: #e74c3c;
-        }
         .btn {
             width: 100%;
             padding: 14px;
@@ -129,13 +115,6 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-group">
-                <label for="password">评委密码:</label>
-                <input type="password" id="password" name="password" required placeholder="请输入评委密码">
-            </div>
-            {% if error %}
-                <div style="color: red; text-align: center; margin-bottom: 15px;">{{ error }}</div>
-            {% endif %}
             <button type="submit" class="btn btn-primary">进入打分</button>
             <a href="/" class="btn btn-secondary">返回首页</a>
         </form>
