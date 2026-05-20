@@ -186,9 +186,13 @@ def index():
 def create():
     try:
         if request.method == 'POST':
-            name = request.form['name']
-            date = request.form['date']
-            judge_password = request.form['judge_password']
+            print(f"Form data: {dict(request.form)}")
+            name = request.form.get('name')
+            date = request.form.get('date')
+            judge_password = request.form.get('judge_password')
+            
+            if not name or not date or not judge_password:
+                return "Missing required fields: name, date, or judge_password", 400
             
             conn = get_db()
             cursor = conn.cursor()
@@ -212,18 +216,25 @@ def create():
             teams = request.form.getlist('team[]')
             numbers = request.form.getlist('number[]')
             
+            print(f"Contestants: {len(contestants)}, Teams: {len(teams)}, Numbers: {len(numbers)}")
+            
             for i in range(len(contestants)):
-                if contestants[i].strip():
-                    if get_db_type() == 'postgres':
-                        cursor.execute('''
-                            INSERT INTO contestants (contest_id, name, team, number)
-                            VALUES (%s, %s, %s, %s)
-                        ''', (contest_id, contestants[i].strip(), teams[i].strip(), int(numbers[i])))
-                    else:
-                        cursor.execute('''
-                            INSERT INTO contestants (contest_id, name, team, number)
-                            VALUES (?, ?, ?, ?)
-                        ''', (contest_id, contestants[i].strip(), teams[i].strip(), int(numbers[i])))
+                if contestants[i] and contestants[i].strip():
+                    team = teams[i] if i < len(teams) else ''
+                    number = numbers[i] if i < len(numbers) else '0'
+                    try:
+                        if get_db_type() == 'postgres':
+                            cursor.execute('''
+                                INSERT INTO contestants (contest_id, name, team, number)
+                                VALUES (%s, %s, %s, %s)
+                            ''', (contest_id, contestants[i].strip(), team.strip(), int(number)))
+                        else:
+                            cursor.execute('''
+                                INSERT INTO contestants (contest_id, name, team, number)
+                                VALUES (?, ?, ?, ?)
+                            ''', (contest_id, contestants[i].strip(), team.strip(), int(number)))
+                    except Exception as e:
+                        print(f"Error inserting contestant {i}: {str(e)}")
             
             conn.commit()
             conn.close()
