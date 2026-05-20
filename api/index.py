@@ -164,7 +164,10 @@ init_db()
 def index():
     try:
         conn = get_db()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor) if DB_TYPE == 'postgres' else conn.cursor()
+        if DB_TYPE == 'postgres':
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        else:
+            cursor = conn.cursor()
         cursor.execute('SELECT * FROM contests ORDER BY created_at DESC')
         contests = cursor.fetchall()
         conn.close()
@@ -228,7 +231,10 @@ def create():
 def contest_detail(contest_id):
     try:
         conn = get_db()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor) if DB_TYPE == 'postgres' else conn.cursor()
+        if DB_TYPE == 'postgres':
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        else:
+            cursor = conn.cursor()
         
         if DB_TYPE == 'postgres':
             cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
@@ -256,7 +262,10 @@ def judge_login(contest_id):
             password = request.form['password']
             
             conn = get_db()
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor) if DB_TYPE == 'postgres' else conn.cursor()
+            if DB_TYPE == 'postgres':
+                cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            else:
+                cursor = conn.cursor()
             
             if DB_TYPE == 'postgres':
                 cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
@@ -283,7 +292,10 @@ def scoring(contest_id):
             return redirect(url_for('judge_login', contest_id=contest_id))
         
         conn = get_db()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor) if DB_TYPE == 'postgres' else conn.cursor()
+        if DB_TYPE == 'postgres':
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        else:
+            cursor = conn.cursor()
         
         if DB_TYPE == 'postgres':
             cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
@@ -339,7 +351,10 @@ def scoring(contest_id):
 def statistics(contest_id):
     try:
         conn = get_db()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor) if DB_TYPE == 'postgres' else conn.cursor()
+        if DB_TYPE == 'postgres':
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        else:
+            cursor = conn.cursor()
         
         if DB_TYPE == 'postgres':
             cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
@@ -397,7 +412,10 @@ def statistics(contest_id):
 def export_excel(contest_id):
     try:
         conn = get_db()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor) if DB_TYPE == 'postgres' else conn.cursor()
+        if DB_TYPE == 'postgres':
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        else:
+            cursor = conn.cursor()
         
         if DB_TYPE == 'postgres':
             cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
