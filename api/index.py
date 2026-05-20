@@ -38,13 +38,13 @@ def get_db():
                 return conn
         
         print("Using SQLite database")
-        DATABASE = os.environ.get('DATABASE_URL', '/tmp/scoring_web.db')
+        DATABASE = os.environ.get('DATABASE_URL', os.path.join(tempfile.gettempdir(), 'scoring_web.db'))
         conn = sqlite3.connect(DATABASE)
         conn.row_factory = sqlite3.Row
         return conn
     except Exception as e:
         print(f"Database connection error: {str(e)}. Using SQLite fallback.")
-        DATABASE = '/tmp/scoring_web.db'
+        DATABASE = os.path.join(tempfile.gettempdir(), 'scoring_web.db')
         conn = sqlite3.connect(DATABASE)
         conn.row_factory = sqlite3.Row
         return conn
@@ -72,6 +72,9 @@ def init_db():
                     date TEXT NOT NULL,
                     status INTEGER DEFAULT 0,
                     judge_password TEXT NOT NULL,
+                    num_groups INTEGER DEFAULT 1,
+                    num_judges INTEGER DEFAULT 3,
+                    num_players INTEGER DEFAULT 10,
                     created_at TEXT NOT NULL
                 )
             ''')
@@ -109,6 +112,14 @@ def init_db():
                     name TEXT NOT NULL
                 )
             ''')
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS groups (
+                    id SERIAL PRIMARY KEY,
+                    contest_id INTEGER NOT NULL REFERENCES contests(id),
+                    name TEXT NOT NULL
+                )
+            ''')
         else:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS contests (
@@ -117,6 +128,9 @@ def init_db():
                     date TEXT NOT NULL,
                     status INTEGER DEFAULT 0,
                     judge_password TEXT NOT NULL,
+                    num_groups INTEGER DEFAULT 1,
+                    num_judges INTEGER DEFAULT 3,
+                    num_players INTEGER DEFAULT 10,
                     created_at TEXT NOT NULL
                 )
             ''')
@@ -158,6 +172,15 @@ def init_db():
                     FOREIGN KEY (contest_id) REFERENCES contests(id)
                 )
             ''')
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS groups (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    contest_id INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    FOREIGN KEY (contest_id) REFERENCES contests(id)
+                )
+            ''')
         
         conn.commit()
         conn.close()
@@ -178,7 +201,7 @@ def index():
         cursor.execute('SELECT * FROM contests ORDER BY created_at DESC')
         contests = cursor.fetchall()
         conn.close()
-        return render_template('index.html', contests=contests)
+        return render_template('index.html', competitions=contests)
     except Exception as e:
         return f"Error: {str(e)}", 500
 
@@ -188,14 +211,14 @@ def create():
         if request.method == 'POST':
             print(f"Form data: {dict(request.form)}")
             name = request.form.get('name', '未命名比赛')
-            num_groups = request.form.get('num_groups', '1')
-            num_judges = request.form.get('num_judges', '3')
-            num_players = request.form.get('num_players', '10')
+            num_groups = int(request.form.get('num_groups', '1'))
+            num_judges = int(request.form.get('num_judges', '3'))
+            num_players = int(request.form.get('num_players', '10'))
             
             # 收集评委权重
             judge_weights = []
-            for i in range(1, int(num_judges) + 1):
-                weight = request.form.get(f'judge_weight_{i}', str(100 / int(num_judges)))
+            for i in range(1, num_judges + 1):
+                weight = request.form.get(f'judge_weight_{i}', str(100 / num_judges))
                 judge_weights.append(weight)
             
             conn = get_db()
@@ -203,16 +226,30 @@ def create():
             
             if get_db_type() == 'postgres':
                 cursor.execute('''
-                    INSERT INTO contests (name, date, status, judge_password, created_at)
-                    VALUES (%s, %s, 0, %s, %s) RETURNING id
-                ''', (name, datetime.now().isoformat(), '123456', datetime.now().isoformat()))
+                    INSERT INTO contests (name, date, status, judge_password, num_groups, num_judges, num_players, created_at)
+                    VALUES (%s, %s, 0, %s, %s, %s, %s, %s) RETURNING id
+                ''', (name, datetime.now().isoformat(), '123456', num_groups, num_judges, num_players, datetime.now().isoformat()))
                 contest_id = cursor.fetchone()[0]
             else:
                 cursor.execute('''
-                    INSERT INTO contests (name, date, status, judge_password, created_at)
-                    VALUES (?, ?, 0, ?, ?)
-                ''', (name, datetime.now().isoformat(), '123456', datetime.now().isoformat()))
+                    INSERT INTO contests (name, date, status, judge_password, num_groups, num_judges, num_players, created_at)
+                    VALUES (?, ?, 0, ?, ?, ?, ?, ?)
+                ''', (name, datetime.now().isoformat(), '123456', num_groups, num_judges, num_players, datetime.now().isoformat()))
                 contest_id = cursor.lastrowid
+            
+            # 创建默认组别
+            for g in range(1, num_groups + 1):
+                if get_db_type() == 'postgres':
+                    cursor.execute('INSERT INTO groups (contest_id, name) VALUES (%s, %s)', (contest_id, f'第{g}组'))
+                else:
+                    cursor.execute('INSERT INTO groups (contest_id, name) VALUES (?, ?)', (contest_id, f'第{g}组'))
+            
+            # 创建默认评委
+            for j in range(1, num_judges + 1):
+                if get_db_type() == 'postgres':
+                    cursor.execute('INSERT INTO judges (contest_id, name) VALUES (%s, %s)', (contest_id, f'评委{j}'))
+                else:
+                    cursor.execute('INSERT INTO judges (contest_id, name) VALUES (?, ?)', (contest_id, f'评委{j}'))
             
             conn.commit()
             conn.close()
@@ -242,6 +279,60 @@ def contest_detail(contest_id):
         
         contest = cursor.fetchone()
         
+        if contest is None:
+            conn.close()
+            return "比赛不存在", 404
+        
+        # 处理POST请求 - 保存名称设置
+        if request.method == 'POST':
+            name_type = request.form.get('name_type')
+            
+            if name_type == 'group':
+                # 保存组别名称
+                for g in range(1, contest['num_groups'] + 1):
+                    group_name = request.form.get(f'group_{g}', f'第{g}组')
+                    if get_db_type() == 'postgres':
+                        cursor.execute('UPDATE groups SET name = %s WHERE contest_id = %s AND id = %s', 
+                                     (group_name, contest_id, g))
+                    else:
+                        cursor.execute('UPDATE groups SET name = ? WHERE contest_id = ? AND id = ?', 
+                                     (group_name, contest_id, g))
+            
+            elif name_type == 'judge':
+                # 保存评委姓名
+                for j in range(1, contest['num_judges'] + 1):
+                    judge_name = request.form.get(f'judge_{j}', f'评委{j}')
+                    if get_db_type() == 'postgres':
+                        cursor.execute('UPDATE judges SET name = %s WHERE contest_id = %s AND id = %s', 
+                                     (judge_name, contest_id, j))
+                    else:
+                        cursor.execute('UPDATE judges SET name = ? WHERE contest_id = ? AND id = ?', 
+                                     (judge_name, contest_id, j))
+            
+            elif name_type == 'player':
+                # 保存选手姓名 - 需要先获取该组别的选手
+                num_players = contest['num_players']
+                num_groups = contest['num_groups']
+                
+                # 删除现有选手
+                if get_db_type() == 'postgres':
+                    cursor.execute('DELETE FROM contestants WHERE contest_id = %s', (contest_id,))
+                else:
+                    cursor.execute('DELETE FROM contestants WHERE contest_id = ?', (contest_id,))
+                
+                # 重新创建选手
+                for g in range(1, num_groups + 1):
+                    for p in range(1, num_players + 1):
+                        player_name = request.form.get(f'player_{g}_{p}', f'选手{p}')
+                        if get_db_type() == 'postgres':
+                            cursor.execute('INSERT INTO contestants (contest_id, name, team, number) VALUES (%s, %s, %s, %s)',
+                                         (contest_id, player_name, f'第{g}组', p))
+                        else:
+                            cursor.execute('INSERT INTO contestants (contest_id, name, team, number) VALUES (?, ?, ?, ?)',
+                                         (contest_id, player_name, f'第{g}组', p))
+            
+            conn.commit()
+        
         if get_db_type() == 'postgres':
             cursor.execute('SELECT * FROM contestants WHERE contest_id = %s ORDER BY number', (contest_id,))
         else:
@@ -249,38 +340,74 @@ def contest_detail(contest_id):
         
         contestants = cursor.fetchall()
         
+        # 获取组别信息
+        if get_db_type() == 'postgres':
+            cursor.execute('SELECT * FROM groups WHERE contest_id = %s', (contest_id,))
+        else:
+            cursor.execute('SELECT * FROM groups WHERE contest_id = ?', (contest_id,))
+        groups_rows = cursor.fetchall()
+        groups = {i+1: row['name'] for i, row in enumerate(groups_rows)}
+        
+        # 获取评委信息
+        if get_db_type() == 'postgres':
+            cursor.execute('SELECT * FROM judges WHERE contest_id = %s', (contest_id,))
+        else:
+            cursor.execute('SELECT * FROM judges WHERE contest_id = ?', (contest_id,))
+        judges_rows = cursor.fetchall()
+        judges = {i+1: row['name'] for i, row in enumerate(judges_rows)}
+        
         conn.close()
-        return render_template('setup.html', contest=contest, contestants=contestants)
+        return render_template('setup.html', comp=contest, competitions=contestants, groups=groups, judges=judges)
     except Exception as e:
         return f"Error: {str(e)}", 500
 
 @app.route('/judge/login/<int:contest_id>', methods=['GET', 'POST'])
 def judge_login(contest_id):
     try:
+        conn = get_db()
+        if get_db_type() == 'postgres':
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        else:
+            cursor = conn.cursor()
+        
+        if get_db_type() == 'postgres':
+            cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
+        else:
+            cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
+        
+        contest = cursor.fetchone()
+        
+        # 获取组别信息
+        if get_db_type() == 'postgres':
+            cursor.execute('SELECT * FROM groups WHERE contest_id = %s', (contest_id,))
+        else:
+            cursor.execute('SELECT * FROM groups WHERE contest_id = ?', (contest_id,))
+        groups_rows = cursor.fetchall()
+        groups = {i+1: row['name'] for i, row in enumerate(groups_rows)}
+        
+        # 获取评委信息
+        if get_db_type() == 'postgres':
+            cursor.execute('SELECT * FROM judges WHERE contest_id = %s', (contest_id,))
+        else:
+            cursor.execute('SELECT * FROM judges WHERE contest_id = ?', (contest_id,))
+        judges_rows = cursor.fetchall()
+        judges = {i+1: row['name'] for i, row in enumerate(judges_rows)}
+        
+        conn.close()
+        
         if request.method == 'POST':
             password = request.form['password']
-            
-            conn = get_db()
-            if get_db_type() == 'postgres':
-                cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-            else:
-                cursor = conn.cursor()
-            
-            if get_db_type() == 'postgres':
-                cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
-            else:
-                cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
-            
-            contest = cursor.fetchone()
             
             if contest and contest['judge_password'] == password:
                 session['judge_contest_id'] = contest_id
                 session['judge_logged_in'] = True
+                session['judge_group'] = request.form.get('group_num', '1')
+                session['judge_num'] = request.form.get('judge_num', '1')
                 return redirect(url_for('scoring', contest_id=contest_id))
             
-            return render_template('judge_login.html', contest_id=contest_id, error='密码错误')
+            return render_template('judge_login.html', comp=contest, groups=groups, judges=judges, error='密码错误')
         
-        return render_template('judge_login.html', contest_id=contest_id, error=None)
+        return render_template('judge_login.html', comp=contest, groups=groups, judges=judges, error=None)
     except Exception as e:
         return f"Error: {str(e)}", 500
 
@@ -310,39 +437,70 @@ def scoring(contest_id):
         
         contestants = cursor.fetchall()
         
-        judge_name = session.get('judge_name', '评委')
+        # 构建players字典
+        players = {str(p['number']): p['name'] for p in contestants}
+        
+        # 评分项名称（默认5个评分项）
+        items = {str(i): f'评分项{i}' for i in range(1, 6)}
+        
+        judge_group = session.get('judge_group', '1')
+        judge_num = session.get('judge_num', '1')
+        
+        # 获取组别和评委名称
+        if get_db_type() == 'postgres':
+            cursor.execute('SELECT * FROM groups WHERE contest_id = %s', (contest_id,))
+        else:
+            cursor.execute('SELECT * FROM groups WHERE contest_id = ?', (contest_id,))
+        groups_rows = cursor.fetchall()
+        group_name = groups_rows[int(judge_group)-1]['name'] if len(groups_rows) >= int(judge_group) else f'第{judge_group}组'
+        
+        if get_db_type() == 'postgres':
+            cursor.execute('SELECT * FROM judges WHERE contest_id = %s', (contest_id,))
+        else:
+            cursor.execute('SELECT * FROM judges WHERE contest_id = ?', (contest_id,))
+        judges_rows = cursor.fetchall()
+        judge_name = judges_rows[int(judge_num)-1]['name'] if len(judges_rows) >= int(judge_num) else f'评委{judge_num}'
         
         if request.method == 'POST':
-            judge_name = request.form['judge_name']
-            session['judge_name'] = judge_name
+            selected_player = request.form.get('selected_player', '')
             
-            for contestant in contestants:
-                score1 = float(request.form.get(f'score1_{contestant["id"]}', 0))
-                score2 = float(request.form.get(f'score2_{contestant["id"]}', 0))
-                score3 = float(request.form.get(f'score3_{contestant["id"]}', 0))
-                score4 = float(request.form.get(f'score4_{contestant["id"]}', 0))
-                score5 = float(request.form.get(f'score5_{contestant["id"]}', 0))
+            # 找到选中的选手
+            selected_contestant = None
+            for c in contestants:
+                if str(c['number']) == selected_player:
+                    selected_contestant = c
+                    break
+            
+            if selected_contestant:
+                score1 = float(request.form.get('score_1', 0))
+                score2 = float(request.form.get('score_2', 0))
+                score3 = float(request.form.get('score_3', 0))
+                score4 = float(request.form.get('score_4', 0))
+                score5 = float(request.form.get('score_5', 0))
                 total = (score1 + score2 + score3 + score4 + score5) / 5
                 
                 if get_db_type() == 'postgres':
                     cursor.execute('''
                         INSERT INTO scores (contest_id, contestant_id, judge_name, score1, score2, score3, score4, score5, total_score, created_at)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ''', (contest_id, contestant['id'], judge_name, score1, score2, score3, score4, score5, total, datetime.now().isoformat()))
+                    ''', (contest_id, selected_contestant['id'], judge_name, score1, score2, score3, score4, score5, total, datetime.now().isoformat()))
                 else:
                     cursor.execute('''
                         INSERT INTO scores (contest_id, contestant_id, judge_name, score1, score2, score3, score4, score5, total_score, created_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (contest_id, contestant['id'], judge_name, score1, score2, score3, score4, score5, total, datetime.now().isoformat()))
+                    ''', (contest_id, selected_contestant['id'], judge_name, score1, score2, score3, score4, score5, total, datetime.now().isoformat()))
+                
+                conn.commit()
             
-            conn.commit()
             conn.close()
             session.pop('judge_logged_in', None)
             session.pop('judge_contest_id', None)
+            session.pop('judge_group', None)
+            session.pop('judge_num', None)
             return redirect(url_for('index'))
         
         conn.close()
-        return render_template('scoring.html', contest=contest, contestants=contestants, judge_name=judge_name)
+        return render_template('scoring.html', comp=contest, players=players, items=items, group_name=group_name, judge_name=judge_name)
     except Exception as e:
         return f"Error: {str(e)}", 500
 
@@ -403,7 +561,7 @@ def statistics(contest_id):
         contestant_stats.sort(key=lambda x: x['avg_score'], reverse=True)
         
         conn.close()
-        return render_template('statistics.html', contest=contest, contestants=contestant_stats)
+        return render_template('statistics.html', comp=contest, contestants=contestant_stats)
     except Exception as e:
         return f"Error: {str(e)}", 500
 

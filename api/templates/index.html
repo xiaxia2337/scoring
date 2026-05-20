@@ -128,7 +128,7 @@
                             <p>{{ comp.num_groups }}组 | {{ comp.num_judges }}评委/组 | {{ comp.num_players }}选手/组 | 创建于 {{ comp.created_at }}</p>
                         </div>
                         <div>
-                            <a href="/judge_login/{{ comp.id }}" class="btn btn-success">开始评分</a>
+                            <a href="/judge/login/{{ comp.id }}" class="btn btn-success">开始评分</a>
                             <a href="/statistics/{{ comp.id }}" class="btn btn-info">查看统计</a>
                             <a href="/delete/{{ comp.id }}" class="btn btn-danger" onclick="return confirm('确定删除该比赛及所有数据？')">删除</a>
                         </div>

@@ -32,52 +32,56 @@
             margin: 5px 0;
             color: #666;
         }
-        .player-selector {
+        .players-section {
             background: white;
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-        .player-selector h3 {
+        .players-section h3 {
             margin-top: 0;
             color: #333;
         }
-        .player-grid {
+        .player-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
         }
-        .player-btn {
-            padding: 12px;
+        .player-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
             border: 2px solid #ddd;
-            border-radius: 8px;
-            background: white;
             cursor: pointer;
-            font-size: 14px;
             transition: all 0.3s;
         }
-        .player-btn:hover {
+        .player-card:hover {
             border-color: #1abc9c;
             background: #f0fff9;
         }
-        .player-btn.active {
+        .player-card.active {
             border-color: #1abc9c;
             background: #1abc9c;
             color: white;
         }
-        .player-btn.scored {
-            border-color: #27ae60;
-            background: #27ae60;
-            color: white;
+        .player-card h4 {
+            margin: 0;
+            font-size: 16px;
         }
-        .scoring-area {
+        .player-card .player-num {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        .scoring-section {
             background: white;
             border-radius: 12px;
             padding: 25px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-        .scoring-area h3 {
+        .scoring-section h3 {
             margin-top: 0;
             color: #333;
             margin-bottom: 20px;
@@ -152,17 +156,10 @@
         .btn-secondary:hover {
             background: #7f8c8d;
         }
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #27ae60;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            font-weight: bold;
-            display: none;
-            z-index: 1000;
+        .no-player-selected {
+            text-align: center;
+            padding: 40px;
+            color: #999;
         }
     </style>
 </head>
@@ -171,95 +168,99 @@
         <div class="header">
             <h2>🏆 {{ comp.name }}</h2>
             <p><strong>组别:</strong> {{ group_name }} | <strong>评委:</strong> {{ judge_name }}</p>
-            <p><strong>当前选手:</strong> <span id="current-player">-</span></p>
         </div>
         
-        <div class="player-selector">
-            <h3>选择打分选手</h3>
-            <div class="player-grid" id="player-grid">
-                {% for p_num, p_name in players.items() %}
-                    <button class="player-btn" data-player="{{ p_num }}">{{ p_name }}</button>
-                {% endfor %}
-            </div>
-        </div>
-        
-        <div class="scoring-area">
-            <h3>⭐ 评分项 (1-5星)</h3>
-            <div class="items-grid" id="items-grid">
-                {% for i_num, i_name in items.items() %}
-                    <div class="item-card">
-                        <h4>{{ i_name }}</h4>
-                        <div class="stars">
-                            {% for s in range(1, 6) %}
-                                <span class="star" data-item="{{ i_num }}" data-score="{{ s }}">★</span>
-                            {% endfor %}
+        <form method="POST" id="scoring-form">
+            <input type="hidden" name="selected_player" id="selected-player-input" value="">
+            
+            <div class="players-section">
+                <h3>选择打分选手</h3>
+                <div class="player-cards">
+                    {% for p_num, p_name in players.items() %}
+                        <div class="player-card" data-player="{{ p_num }}" onclick="selectPlayer('{{ p_num }}', '{{ p_name }}')">
+                            <h4>{{ p_name }}</h4>
+                            <div class="player-num">选手 {{ p_num }}</div>
                         </div>
-                    </div>
-                {% endfor %}
+                    {% endfor %}
+                </div>
             </div>
             
-            <div class="submit-area">
-                <div class="total-score">总分: <span id="total-score">0</span> / 100</div>
-                <button class="btn btn-primary" id="submit-btn">提交评分</button>
-                <a href="/" class="btn btn-secondary">退出登录</a>
+            <div class="scoring-section" id="scoring-area" style="display: none;">
+                <h3>⭐ 当前打分: <span id="current-player-name">-</span></h3>
+                <div class="items-grid">
+                    {% for i_num, i_name in items.items() %}
+                        <div class="item-card">
+                            <h4>{{ i_name }}</h4>
+                            <div class="stars">
+                                {% for s in range(1, 6) %}
+                                    <span class="star" data-item="{{ i_num }}" data-score="{{ s }}" onclick="setScore('{{ i_num }}', {{ s }})">★</span>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="score_{{ i_num }}" id="score_{{ i_num }}" value="3">
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="submit-area">
+                    <div class="total-score">总分: <span id="total-score">15</span> / 25</div>
+                    <button type="submit" class="btn btn-primary">提交该选手评分</button>
+                </div>
             </div>
+            
+            <div class="no-player-selected" id="no-player-msg">
+                <p>请先点击上方选手卡片选择要打分的选手</p>
+            </div>
+        </form>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="/" class="btn btn-secondary">返回首页</a>
         </div>
     </div>
     
-    <div class="toast" id="toast">评分提交成功！</div>
-    
     <script>
-        const compId = {{ comp.id }};
-        const groupNum = {{ group_num }};
-        const judgeNum = {{ judge_num }};
-        
-        let currentPlayer = null;
         const scores = {};
+        let currentPlayer = null;
         
-        for (let i = 1; i <= 20; i++) {
-            scores[i] = 3;
+        // 初始化所有评分为3星
+        {% for i_num, i_name in items.items() %}
+            scores['{{ i_num }}'] = 3;
+        {% endfor %}
+        
+        function selectPlayer(playerNum, playerName) {
+            // 移除其他选手的active状态
+            document.querySelectorAll('.player-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // 设置当前选手
+            event.currentTarget.classList.add('active');
+            currentPlayer = playerNum;
+            
+            // 更新隐藏字段
+            document.getElementById('selected-player-input').value = playerNum;
+            document.getElementById('current-player-name').textContent = playerName;
+            
+            // 显示评分区域
+            document.getElementById('scoring-area').style.display = 'block';
+            document.getElementById('no-player-msg').style.display = 'none';
+            
+            // 重置分数显示
+            {% for i_num, i_name in items.items() %}
+                scores['{{ i_num }}'] = 3;
+                document.querySelectorAll(`.star[data-item="{{ i_num }}"]`).forEach((star, idx) => {
+                    if (idx < 3) star.classList.add('active');
+                    else star.classList.remove('active');
+                });
+                document.getElementById('score_{{ i_num }}').value = 3;
+            {% endfor %}
+            
+            calculateTotal();
         }
         
-        document.querySelectorAll('.player-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.player-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentPlayer = parseInt(btn.dataset.player);
-                document.getElementById('current-player').textContent = btn.textContent;
-                
-                fetch(`/api/check_score/${compId}/${groupNum}/${currentPlayer}/${judgeNum}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.exists) {
-                            data.scores.forEach((score, idx) => {
-                                scores[idx + 1] = score;
-                                updateStars(idx + 1, score);
-                            });
-                            calculateTotal();
-                            btn.classList.add('scored');
-                        } else {
-                            for (let i = 1; i <= 20; i++) {
-                                scores[i] = 3;
-                                updateStars(i, 3);
-                            }
-                            calculateTotal();
-                            btn.classList.remove('scored');
-                        }
-                    });
-            });
-        });
-        
-        document.querySelectorAll('.star').forEach(star => {
-            star.addEventListener('click', () => {
-                const itemNum = parseInt(star.dataset.item);
-                const score = parseInt(star.dataset.score);
-                scores[itemNum] = score;
-                updateStars(itemNum, score);
-                calculateTotal();
-            });
-        });
-        
-        function updateStars(itemNum, score) {
+        function setScore(itemNum, score) {
+            scores[itemNum] = score;
+            
+            // 更新星星显示
             document.querySelectorAll(`.star[data-item="${itemNum}"]`).forEach((star, idx) => {
                 if (idx < score) {
                     star.classList.add('active');
@@ -267,6 +268,12 @@
                     star.classList.remove('active');
                 }
             });
+            
+            // 更新隐藏输入
+            document.getElementById('score_' + itemNum).value = score;
+            
+            // 计算总分
+            calculateTotal();
         }
         
         function calculateTotal() {
@@ -274,55 +281,21 @@
             document.getElementById('total-score').textContent = total;
         }
         
-        document.getElementById('submit-btn').addEventListener('click', () => {
+        // 表单提交前检查
+        document.getElementById('scoring-form').addEventListener('submit', function(e) {
             if (!currentPlayer) {
-                alert('请先选择选手');
-                return;
+                e.preventDefault();
+                alert('请先选择要打分的选手');
+                return false;
             }
-            
-            const formData = new FormData();
-            formData.append('player_num', currentPlayer);
-            for (let i = 1; i <= 20; i++) {
-                formData.append(`score_${i}`, scores[i]);
-            }
-            
-            fetch('/scoring', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    document.querySelector(`.player-btn[data-player="${currentPlayer}"]`).classList.add('scored');
-                    showToast('评分提交成功！');
-                    
-                    const playerBtns = document.querySelectorAll('.player-btn');
-                    let currentIdx = -1;
-                    playerBtns.forEach((btn, idx) => {
-                        if (parseInt(btn.dataset.player) === currentPlayer) {
-                            currentIdx = idx;
-                        }
-                    });
-                    
-                    if (currentIdx < playerBtns.length - 1) {
-                        setTimeout(() => {
-                            playerBtns[currentIdx + 1].click();
-                        }, 500);
-                    }
-                }
-            });
         });
         
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.style.display = 'block';
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 2000);
-        }
-        
-        calculateTotal();
+        // 初始化星星显示
+        {% for i_num, i_name in items.items() %}
+            document.querySelectorAll(`.star[data-item="{{ i_num }}"]`).forEach((star, idx) => {
+                if (idx < 3) star.classList.add('active');
+            });
+        {% endfor %}
     </script>
 </body>
 </html>

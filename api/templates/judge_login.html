@@ -103,7 +103,7 @@
                 <label for="group_num">选择组别:</label>
                 <select id="group_num" name="group_num" required>
                     {% for g in range(1, comp.num_groups + 1) %}
-                        <option value="{{ g }}">{{ groups.get(g, '第' + g|string + '组') }}</option>
+                        <option value="{{ g }}">{{ groups.get(g, '第' ~ g ~ '组') }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -111,7 +111,7 @@
                 <label for="judge_num">选择评委:</label>
                 <select id="judge_num" name="judge_num" required>
                     {% for j in range(1, comp.num_judges + 1) %}
-                        <option value="{{ j }}">{{ judges.get(j, '评委' + j|string) }}</option>
+                        <option value="{{ j }}">{{ judges.get(j, '评委' ~ j) }}</option>
                     {% endfor %}
                 </select>
             </div>

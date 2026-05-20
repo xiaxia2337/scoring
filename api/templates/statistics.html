@@ -57,6 +57,9 @@
         tr:hover {
             background: #f8f9fa;
         }
+        .rank-1 { background: #ffd700 !important; }
+        .rank-2 { background: #c0c0c0 !important; }
+        .rank-3 { background: #cd7f32 !important; }
         .btn {
             display: inline-block;
             padding: 12px 30px;
@@ -77,26 +80,12 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(52, 152, 219, 0.4);
         }
-        .btn-success {
-            background: #28a745;
+        .btn-secondary {
+            background: #95a5a6;
             color: white;
         }
-        .btn-success:hover {
-            background: #218838;
-        }
-        .btn-warning {
-            background: #f39c12;
-            color: white;
-        }
-        .btn-warning:hover {
-            background: #e67e22;
-        }
-        .btn-info {
-            background: #17a2b8;
-            color: white;
-        }
-        .btn-info:hover {
-            background: #138496;
+        .btn-secondary:hover {
+            background: #7f8c8d;
         }
         .center {
             text-align: center;
@@ -107,18 +96,6 @@
             padding: 40px;
             font-size: 1.2em;
         }
-        .import-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
-        }
-        .import-result {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 6px;
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -128,44 +105,33 @@
             <p>{{ comp.name }}</p>
         </div>
         
-        {% if comp.judge_weights %}
-        <div class="card" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);">
-            <h3 style="color: white; border-bottom-color: white;">⚖️ 评委权重设置</h3>
-            <div style="color: white; display: flex; flex-wrap: wrap; gap: 10px;">
-                {% set weights = comp.judge_weights.split(',') %}
-                {% for i in range(weights|length) %}
-                    <span style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px;">
-                        评委{{ i + 1 }}: {{ weights[i] }}%
-                    </span>
-                {% endfor %}
-            </div>
-            <p style="color: rgba(255,255,255,0.8); font-size: 14px; margin-top: 15px;">
-                💡 最终得分 = Σ(评委打分 × 权重比例)
-            </p>
-        </div>
-        {% endif %}
-        
         <div class="card">
-            <h3>详细评分表</h3>
-            {% if detail_data %}
+            <h3>🏆 选手排名</h3>
+            {% if contestants and contestants|length > 0 %}
                 <table>
                     <thead>
                         <tr>
-                            <th>组别</th>
-                            <th>选手</th>
-                            <th>评委</th>
-                            <th>总分</th>
-                            <th>评分时间</th>
+                            <th>排名</th>
+                            <th>选手编号</th>
+                            <th>选手姓名</th>
+                            <th>团队/组别</th>
+                            <th>平均分</th>
+                            <th>最高分</th>
+                            <th>最低分</th>
+                            <th>评分次数</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for row in detail_data %}
-                            <tr>
-                                <td>{{ row.group_name }}</td>
-                                <td>{{ row.player_name }}</td>
-                                <td>{{ row.judge_name }}</td>
-                                <td>{{ row.total_score }}</td>
-                                <td>{{ row.scored_at }}</td>
+                        {% for contestant in contestants %}
+                            <tr class="{% if loop.index == 1 %}rank-1{% elif loop.index == 2 %}rank-2{% elif loop.index == 3 %}rank-3{% endif %}">
+                                <td>{% if loop.index <= 3 %}🎖️{% endif %}{{ loop.index }}</td>
+                                <td>{{ contestant.number }}</td>
+                                <td>{{ contestant.name }}</td>
+                                <td>{{ contestant.team }}</td>
+                                <td><strong>{{ "%.2f"|format(contestant.avg_score) }}</strong></td>
+                                <td>{{ "%.2f"|format(contestant.max_score) }}</td>
+                                <td>{{ "%.2f"|format(contestant.min_score) }}</td>
+                                <td>{{ contestant.scores_count }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -175,95 +141,10 @@
             {% endif %}
         </div>
         
-        <div class="card">
-            <h3>加权平均分汇总表</h3>
-            {% if summary_data %}
-                <table>
-                    <thead>
-                        <tr>
-                            <th>组别</th>
-                            <th>选手</th>
-                            <th>加权平均分</th>
-                            <th>评分评委数</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in summary_data %}
-                            <tr>
-                                <td>{{ row.group_name }}</td>
-                                <td>{{ row.player_name }}</td>
-                                <td>{{ row.avg_score }}</td>
-                                <td>{{ row.judge_count }}/{{ comp.num_judges }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <div class="no-data">暂无汇总数据</div>
-            {% endif %}
-        </div>
-        
-        <div class="card">
-            <h3>📥 导入/导出成绩</h3>
-            <div class="import-section">
-                <h4 style="margin-top: 0;">导出成绩</h4>
-                <a href="/export_excel/{{ comp.id }}" class="btn btn-info">导出Excel</a>
-            </div>
-            
-            <div class="import-section">
-                <h4 style="margin-top: 0;">批量导入成绩</h4>
-                <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
-                    Excel格式要求：Sheet名"详细表"，包含列：组别、选手、评委、总分
-                </p>
-                <form id="import-form" action="/import_scores/{{ comp.id }}" method="POST" enctype="multipart/form-data">
-                    <input type="file" name="file" accept=".xlsx" style="display: none;" id="file-input">
-                    <button type="button" class="btn btn-warning" onclick="document.getElementById('file-input').click();">
-                        选择Excel文件
-                    </button>
-                    <button type="submit" class="btn btn-success">开始导入</button>
-                </form>
-                <div id="import-result" class="import-result"></div>
-            </div>
-        </div>
-        
-        <div class="center">
-            <a href="/" class="btn btn-primary">返回首页</a>
-            <a href="/judge_login/{{ comp.id }}" class="btn btn-success">继续评分</a>
+        <div style="text-align: center;">
+            <a href="/" class="btn btn-secondary">返回首页</a>
+            <a href="/export/{{ comp.id }}" class="btn btn-primary">导出Excel</a>
         </div>
     </div>
-    
-    <script>
-        document.getElementById('import-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const resultDiv = document.getElementById('import-result');
-            
-            fetch(this.action, {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                resultDiv.style.display = 'block';
-                if (data.success) {
-                    resultDiv.style.background = '#27ae60';
-                    resultDiv.style.color = 'white';
-                    resultDiv.textContent = data.message;
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    resultDiv.style.background = '#e74c3c';
-                    resultDiv.style.color = 'white';
-                    resultDiv.textContent = data.message;
-                }
-            });
-        });
-        
-        document.getElementById('file-input').addEventListener('change', function(e) {
-            const fileName = e.target.files[0]?.name;
-            if (fileName) {
-                alert(`已选择文件: ${fileName}`);
-            }
-        });
-    </script>
 </body>
 </html>
