@@ -346,7 +346,13 @@ def contest_detail(contest_id):
         else:
             cursor.execute('SELECT * FROM groups WHERE contest_id = ?', (contest_id,))
         groups_rows = cursor.fetchall()
-        groups = {i+1: row['name'] for i, row in enumerate(groups_rows)}
+        # 确保至少有默认组别
+        if not groups_rows or len(groups_rows) == 0:
+            groups = {1: '第1组'}
+            for g in range(1, contest['num_groups'] + 1):
+                groups[g] = f'第{g}组'
+        else:
+            groups = {i+1: row['name'] for i, row in enumerate(groups_rows)}
         
         # 获取评委信息
         if get_db_type() == 'postgres':
@@ -354,7 +360,13 @@ def contest_detail(contest_id):
         else:
             cursor.execute('SELECT * FROM judges WHERE contest_id = ?', (contest_id,))
         judges_rows = cursor.fetchall()
-        judges = {i+1: row['name'] for i, row in enumerate(judges_rows)}
+        # 确保至少有默认评委
+        if not judges_rows or len(judges_rows) == 0:
+            judges = {1: '评委1'}
+            for j in range(1, contest['num_judges'] + 1):
+                judges[j] = f'评委{j}'
+        else:
+            judges = {i+1: row['name'] for i, row in enumerate(judges_rows)}
         
         conn.close()
         return render_template('setup.html', comp=contest, competitions=contestants, groups=groups, judges=judges)
@@ -377,13 +389,23 @@ def judge_login(contest_id):
         
         contest = cursor.fetchone()
         
+        if contest is None:
+            conn.close()
+            return "比赛不存在", 404
+        
         # 获取组别信息
         if get_db_type() == 'postgres':
             cursor.execute('SELECT * FROM groups WHERE contest_id = %s', (contest_id,))
         else:
             cursor.execute('SELECT * FROM groups WHERE contest_id = ?', (contest_id,))
         groups_rows = cursor.fetchall()
-        groups = {i+1: row['name'] for i, row in enumerate(groups_rows)}
+        # 确保至少有默认组别
+        if not groups_rows or len(groups_rows) == 0:
+            groups = {1: '第1组'}
+            for g in range(1, contest['num_groups'] + 1):
+                groups[g] = f'第{g}组'
+        else:
+            groups = {i+1: row['name'] for i, row in enumerate(groups_rows)}
         
         # 获取评委信息
         if get_db_type() == 'postgres':
@@ -391,7 +413,13 @@ def judge_login(contest_id):
         else:
             cursor.execute('SELECT * FROM judges WHERE contest_id = ?', (contest_id,))
         judges_rows = cursor.fetchall()
-        judges = {i+1: row['name'] for i, row in enumerate(judges_rows)}
+        # 确保至少有默认评委
+        if not judges_rows or len(judges_rows) == 0:
+            judges = {1: '评委1'}
+            for j in range(1, contest['num_judges'] + 1):
+                judges[j] = f'评委{j}'
+        else:
+            judges = {i+1: row['name'] for i, row in enumerate(judges_rows)}
         
         conn.close()
         
