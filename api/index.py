@@ -13,51 +13,58 @@ import sqlite3
 try:
     import psycopg2
     import psycopg2.extras
-    DB_TYPE = 'postgres'
-    print("Using PostgreSQL database")
+    HAS_POSTGRES = True
 except ImportError:
-    DB_TYPE = 'sqlite'
-    print("Using SQLite database")
+    HAS_POSTGRES = False
 
 def get_db():
     try:
-        if DB_TYPE == 'postgres':
+        if HAS_POSTGRES:
             host = os.environ.get('SUPABASE_HOST')
             database = os.environ.get('SUPABASE_DB')
             user = os.environ.get('SUPABASE_USER')
             password = os.environ.get('SUPABASE_PASSWORD')
             port = os.environ.get('SUPABASE_PORT', '5432')
             
-            if not all([host, database, user, password]):
-                print("Missing Supabase environment variables, falling back to SQLite")
-                raise Exception("Missing database credentials")
-            
-            conn = psycopg2.connect(
-                host=host,
-                database=database,
-                user=user,
-                password=password,
-                port=port
-            )
-            return conn
-        else:
-            DATABASE = os.environ.get('DATABASE_URL', '/tmp/scoring_web.db')
-            conn = sqlite3.connect(DATABASE)
-            conn.row_factory = sqlite3.Row
-            return conn
+            if all([host, database, user, password]):
+                print("Using PostgreSQL database")
+                conn = psycopg2.connect(
+                    host=host,
+                    database=database,
+                    user=user,
+                    password=password,
+                    port=port
+                )
+                return conn
+        
+        print("Using SQLite database")
+        DATABASE = os.environ.get('DATABASE_URL', '/tmp/scoring_web.db')
+        conn = sqlite3.connect(DATABASE)
+        conn.row_factory = sqlite3.Row
+        return conn
     except Exception as e:
-        print(f"Database connection error: {str(e)}")
+        print(f"Database connection error: {str(e)}. Using SQLite fallback.")
         DATABASE = '/tmp/scoring_web.db'
         conn = sqlite3.connect(DATABASE)
         conn.row_factory = sqlite3.Row
         return conn
+
+def get_db_type():
+    if HAS_POSTGRES:
+        host = os.environ.get('SUPABASE_HOST')
+        database = os.environ.get('SUPABASE_DB')
+        user = os.environ.get('SUPABASE_USER')
+        password = os.environ.get('SUPABASE_PASSWORD')
+        if all([host, database, user, password]):
+            return 'postgres'
+    return 'sqlite'
 
 def init_db():
     try:
         conn = get_db()
         cursor = conn.cursor()
         
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS contests (
                     id SERIAL PRIMARY KEY,
@@ -164,7 +171,7 @@ init_db()
 def index():
     try:
         conn = get_db()
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         else:
             cursor = conn.cursor()
@@ -186,7 +193,7 @@ def create():
             conn = get_db()
             cursor = conn.cursor()
             
-            if DB_TYPE == 'postgres':
+            if get_db_type() == 'postgres':
                 cursor.execute('''
                     INSERT INTO contests (name, date, status, judge_password, created_at)
                     VALUES (%s, %s, 0, %s, %s) RETURNING id
@@ -207,7 +214,7 @@ def create():
             
             for i in range(len(contestants)):
                 if contestants[i].strip():
-                    if DB_TYPE == 'postgres':
+                    if get_db_type() == 'postgres':
                         cursor.execute('''
                             INSERT INTO contestants (contest_id, name, team, number)
                             VALUES (%s, %s, %s, %s)
@@ -231,19 +238,19 @@ def create():
 def contest_detail(contest_id):
     try:
         conn = get_db()
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         else:
             cursor = conn.cursor()
         
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
         else:
             cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
         
         contest = cursor.fetchone()
         
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor.execute('SELECT * FROM contestants WHERE contest_id = %s ORDER BY number', (contest_id,))
         else:
             cursor.execute('SELECT * FROM contestants WHERE contest_id = ? ORDER BY number', (contest_id,))
@@ -262,12 +269,12 @@ def judge_login(contest_id):
             password = request.form['password']
             
             conn = get_db()
-            if DB_TYPE == 'postgres':
+            if get_db_type() == 'postgres':
                 cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             else:
                 cursor = conn.cursor()
             
-            if DB_TYPE == 'postgres':
+            if get_db_type() == 'postgres':
                 cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
             else:
                 cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
@@ -292,19 +299,19 @@ def scoring(contest_id):
             return redirect(url_for('judge_login', contest_id=contest_id))
         
         conn = get_db()
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         else:
             cursor = conn.cursor()
         
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
         else:
             cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
         
         contest = cursor.fetchone()
         
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor.execute('SELECT * FROM contestants WHERE contest_id = %s ORDER BY number', (contest_id,))
         else:
             cursor.execute('SELECT * FROM contestants WHERE contest_id = ? ORDER BY number', (contest_id,))
@@ -325,7 +332,7 @@ def scoring(contest_id):
                 score5 = float(request.form.get(f'score5_{contestant["id"]}', 0))
                 total = (score1 + score2 + score3 + score4 + score5) / 5
                 
-                if DB_TYPE == 'postgres':
+                if get_db_type() == 'postgres':
                     cursor.execute('''
                         INSERT INTO scores (contest_id, contestant_id, judge_name, score1, score2, score3, score4, score5, total_score, created_at)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -351,19 +358,19 @@ def scoring(contest_id):
 def statistics(contest_id):
     try:
         conn = get_db()
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         else:
             cursor = conn.cursor()
         
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
         else:
             cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
         
         contest = cursor.fetchone()
         
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor.execute('SELECT * FROM contestants WHERE contest_id = %s ORDER BY number', (contest_id,))
         else:
             cursor.execute('SELECT * FROM contestants WHERE contest_id = ? ORDER BY number', (contest_id,))
@@ -372,7 +379,7 @@ def statistics(contest_id):
         
         contestant_stats = []
         for contestant in contestants:
-            if DB_TYPE == 'postgres':
+            if get_db_type() == 'postgres':
                 cursor.execute('SELECT * FROM scores WHERE contestant_id = %s', (contestant['id'],))
             else:
                 cursor.execute('SELECT * FROM scores WHERE contestant_id = ?', (contestant['id'],))
@@ -412,19 +419,19 @@ def statistics(contest_id):
 def export_excel(contest_id):
     try:
         conn = get_db()
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         else:
             cursor = conn.cursor()
         
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor.execute('SELECT * FROM contests WHERE id = %s', (contest_id,))
         else:
             cursor.execute('SELECT * FROM contests WHERE id = ?', (contest_id,))
         
         contest = cursor.fetchone()
         
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor.execute('SELECT * FROM contestants WHERE contest_id = %s ORDER BY number', (contest_id,))
         else:
             cursor.execute('SELECT * FROM contestants WHERE contest_id = ? ORDER BY number', (contest_id,))
@@ -455,7 +462,7 @@ def export_excel(contest_id):
             cell.border = thin_border
         
         for i, contestant in enumerate(contestants, 1):
-            if DB_TYPE == 'postgres':
+            if get_db_type() == 'postgres':
                 cursor.execute('SELECT * FROM scores WHERE contestant_id = %s', (contestant['id'],))
             else:
                 cursor.execute('SELECT * FROM scores WHERE contestant_id = ?', (contestant['id'],))
@@ -509,7 +516,7 @@ def delete_contest(contest_id):
         conn = get_db()
         cursor = conn.cursor()
         
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor.execute('DELETE FROM scores WHERE contest_id = %s', (contest_id,))
             cursor.execute('DELETE FROM contestants WHERE contest_id = %s', (contest_id,))
             cursor.execute('DELETE FROM judges WHERE contest_id = %s', (contest_id,))
@@ -533,7 +540,7 @@ def start_contest(contest_id):
         conn = get_db()
         cursor = conn.cursor()
         
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor.execute('UPDATE contests SET status = 1 WHERE id = %s', (contest_id,))
         else:
             cursor.execute('UPDATE contests SET status = 1 WHERE id = ?', (contest_id,))
@@ -550,7 +557,7 @@ def end_contest(contest_id):
         conn = get_db()
         cursor = conn.cursor()
         
-        if DB_TYPE == 'postgres':
+        if get_db_type() == 'postgres':
             cursor.execute('UPDATE contests SET status = 2 WHERE id = %s', (contest_id,))
         else:
             cursor.execute('UPDATE contests SET status = 2 WHERE id = ?', (contest_id,))
