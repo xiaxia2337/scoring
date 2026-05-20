@@ -568,12 +568,22 @@ def end_contest(contest_id):
     except Exception as e:
         return f"Error: {str(e)}", 500
 
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
+
+@app.route('/favicon.png')
+def favicon_png():
+    return '', 204
+
 @app.errorhandler(400)
 def bad_request(error):
-    return f"400 Bad Request: {str(error)}\n\nRequest Method: {request.method}\nRequest URL: {request.url}\nRequest Headers: {dict(request.headers)}", 400
+    return f"400 Bad Request: {str(error)}\n\nRequest Method: {request.method}\nRequest URL: {request.url}\nRequest Headers: {dict(request.headers)}\nRequest Form: {dict(request.form)}", 400
 
 @app.errorhandler(Exception)
 def handle_exception(error):
-    return f"Error: {str(error)}\n\nRequest Method: {request.method}\nRequest URL: {request.url}", 500
+    import traceback
+    error_trace = traceback.format_exc()
+    return f"Error: {str(error)}\n\nRequest Method: {request.method}\nRequest URL: {request.url}\n\nTraceback:\n{error_trace}", 500
 
 handler = app
