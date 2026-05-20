@@ -263,7 +263,7 @@ def create():
         error_trace = traceback.format_exc()
         return f"Error: {str(e)}\n\nTraceback:\n{error_trace}", 500
 
-@app.route('/contest/<int:contest_id>')
+@app.route('/contest/<int:contest_id>', methods=['GET', 'POST'])
 def contest_detail(contest_id):
     try:
         conn = get_db()
