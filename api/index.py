@@ -217,7 +217,8 @@ def create():
             conn.commit()
             conn.close()
             
-            return redirect(url_for('index'))
+            # 跳转到比赛详情页来设置选手信息
+            return redirect(url_for('contest_detail', contest_id=contest_id))
         
         return render_template('create.html')
     except Exception as e:
