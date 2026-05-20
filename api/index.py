@@ -187,12 +187,16 @@ def create():
     try:
         if request.method == 'POST':
             print(f"Form data: {dict(request.form)}")
-            name = request.form.get('name')
-            date = request.form.get('date')
-            judge_password = request.form.get('judge_password')
+            name = request.form.get('name', '未命名比赛')
+            num_groups = request.form.get('num_groups', '1')
+            num_judges = request.form.get('num_judges', '3')
+            num_players = request.form.get('num_players', '10')
             
-            if not name or not date or not judge_password:
-                return "Missing required fields: name, date, or judge_password", 400
+            # 收集评委权重
+            judge_weights = []
+            for i in range(1, int(num_judges) + 1):
+                weight = request.form.get(f'judge_weight_{i}', str(100 / int(num_judges)))
+                judge_weights.append(weight)
             
             conn = get_db()
             cursor = conn.cursor()
@@ -201,40 +205,14 @@ def create():
                 cursor.execute('''
                     INSERT INTO contests (name, date, status, judge_password, created_at)
                     VALUES (%s, %s, 0, %s, %s) RETURNING id
-                ''', (name, date, judge_password, datetime.now().isoformat()))
+                ''', (name, datetime.now().isoformat(), '123456', datetime.now().isoformat()))
                 contest_id = cursor.fetchone()[0]
             else:
                 cursor.execute('''
                     INSERT INTO contests (name, date, status, judge_password, created_at)
                     VALUES (?, ?, 0, ?, ?)
-                ''', (name, date, judge_password, datetime.now().isoformat()))
+                ''', (name, datetime.now().isoformat(), '123456', datetime.now().isoformat()))
                 contest_id = cursor.lastrowid
-            
-            conn.commit()
-            
-            contestants = request.form.getlist('contestant_name[]')
-            teams = request.form.getlist('team[]')
-            numbers = request.form.getlist('number[]')
-            
-            print(f"Contestants: {len(contestants)}, Teams: {len(teams)}, Numbers: {len(numbers)}")
-            
-            for i in range(len(contestants)):
-                if contestants[i] and contestants[i].strip():
-                    team = teams[i] if i < len(teams) else ''
-                    number = numbers[i] if i < len(numbers) else '0'
-                    try:
-                        if get_db_type() == 'postgres':
-                            cursor.execute('''
-                                INSERT INTO contestants (contest_id, name, team, number)
-                                VALUES (%s, %s, %s, %s)
-                            ''', (contest_id, contestants[i].strip(), team.strip(), int(number)))
-                        else:
-                            cursor.execute('''
-                                INSERT INTO contestants (contest_id, name, team, number)
-                                VALUES (?, ?, ?, ?)
-                            ''', (contest_id, contestants[i].strip(), team.strip(), int(number)))
-                    except Exception as e:
-                        print(f"Error inserting contestant {i}: {str(e)}")
             
             conn.commit()
             conn.close()
@@ -243,7 +221,9 @@ def create():
         
         return render_template('create.html')
     except Exception as e:
-        return f"Error: {str(e)}", 500
+        import traceback
+        error_trace = traceback.format_exc()
+        return f"Error: {str(e)}\n\nTraceback:\n{error_trace}", 500
 
 @app.route('/contest/<int:contest_id>')
 def contest_detail(contest_id):
