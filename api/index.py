@@ -8,13 +8,14 @@ import tempfile
 app = Flask(__name__)
 app.secret_key = 'scoring_system_secret_key'
 
+import sqlite3
+
 try:
     import psycopg2
     import psycopg2.extras
     DB_TYPE = 'postgres'
     print("Using PostgreSQL database")
 except ImportError:
-    import sqlite3
     DB_TYPE = 'sqlite'
     print("Using SQLite database")
 
