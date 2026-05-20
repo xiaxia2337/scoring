@@ -568,4 +568,12 @@ def end_contest(contest_id):
     except Exception as e:
         return f"Error: {str(e)}", 500
 
+@app.errorhandler(400)
+def bad_request(error):
+    return f"400 Bad Request: {str(error)}\n\nRequest Method: {request.method}\nRequest URL: {request.url}\nRequest Headers: {dict(request.headers)}", 400
+
+@app.errorhandler(Exception)
+def handle_exception(error):
+    return f"Error: {str(error)}\n\nRequest Method: {request.method}\nRequest URL: {request.url}", 500
+
 handler = app

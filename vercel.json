@@ -8,43 +8,7 @@
   },
   "routes": [
     {
-      "src": "/",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/create",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/contest/(.*)",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/judge/(.*)",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/scoring/(.*)",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/statistics/(.*)",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/export/(.*)",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/delete/(.*)",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/start/(.*)",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/end/(.*)",
+      "src": "/(.*)",
       "dest": "api/index.py"
     }
   ]
