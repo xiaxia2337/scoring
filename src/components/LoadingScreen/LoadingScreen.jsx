@@ -15,6 +15,7 @@ const LoadingScreen = () => {
   const setIsExperienceReady = useExperienceStore(
     (state) => state.setIsExperienceReady,
   );
+  const isSceneReady = useExperienceStore((state) => state.isSceneReady);
 
   const tlRef = useRef(null);
   const trRef = useRef(null);
@@ -30,14 +31,7 @@ const LoadingScreen = () => {
   useGSAP(() => {
     if (!revealed) return;
 
-    gsap.to(loadingRef.current, {
-      opacity: 0,
-      duration: 0.3,
-      ease: "power1.out",
-      onStart: () => {
-        setIsExperienceReady(true);
-      },
-    });
+    setIsExperienceReady(true);
 
     gsap.to(tlRef.current, {
       top: "-100%",
