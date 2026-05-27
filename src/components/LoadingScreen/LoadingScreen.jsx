@@ -90,7 +90,7 @@ const LoadingScreen = () => {
                 }}
               />
             </div>
-            <h1 className="title">Aimee Wei's Papercraft World</h1>
+            <h1 className="title">文小姐与夏先生的回忆世界</h1>
 
             {/* Lol don't do this this is cringe */}
             <div
@@ -164,7 +164,7 @@ const LoadingScreen = () => {
                 textDecoration: "underline",
               }}
             >
-              See full list of credits here!!
+              查看完整的致谢列表！
             </a>
 
             <div
@@ -182,7 +182,7 @@ const LoadingScreen = () => {
                 color: "rgb(233, 233, 233)",
               }}
             >
-              ~ Swipe/Scroll to navigate ~
+              ~ 滑动/滚动来导航 ~
             </div>
           </>
         )}
@@ -194,7 +194,7 @@ const LoadingScreen = () => {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
-            Enter!
+            进入！
           </button>
         )}
       </div>

@@ -6,6 +6,7 @@ import Spring from "./models/Scene_2_Spring";
 import Summer from "./models/Scene_3_Summer";
 import Fall from "./models/Scene_4_Fall";
 import CustomCamera from "./components/CustomCamera";
+import OwnerPictures from "./components/OwnerPictures";
 import { useExperienceStore } from "../store/useExperienceStore";
 
 const SceneReadySentinel = () => {
@@ -26,6 +27,7 @@ const Scene = () => {
         <Spring />
         <Summer />
         <Fall />
+        <OwnerPictures />
         <SceneReadySentinel />
       </Suspense>
     </>

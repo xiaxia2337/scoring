@@ -36,19 +36,18 @@ const InfoPanel = () => {
     >
       <div className="info-box">
         <div className="info-box-content">
-          <div className="info-box-title">Credits:</div>
+          <div className="info-box-title">致谢：</div>
 
           <p className="info-intro">
-            This website was built for a Codrops article and{" "}
+            本网站是为 Codrops 文章和{" "}
             <a
               href="https://www.youtube.com/watch?v=AD01pTr3gvw&feature=youtu.be"
               target="_blank"
               rel="noreferrer"
             >
-              YouTube Tutorial
+              YouTube 教程
             </a>
-            !! Name and details are anonymoized for privacy. See full list of
-            credits, code and Blender files on{" "}
+            制作的！为保护隐私，姓名和细节已匿名化。在{" "}
             <a
               href="https://github.com/andrewwoan/aimee-weis-papercraft-world"
               target="_blank"
@@ -56,8 +55,7 @@ const InfoPanel = () => {
             >
               GitHub
             </a>
-            ! Feel free to reach out if you got any questions or just wanna say
-            hi!
+            上查看完整的致谢列表、代码和 Blender 文件！如有任何问题或只是想打个招呼，欢迎联系我！
           </p>
 
           <ul className="info-list">

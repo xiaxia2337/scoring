@@ -12,7 +12,7 @@ const InfoButton = () => {
       id="info-button"
       onClick={() => setIsInfoPanelOpen(!isInfoPanelOpen)}
     >
-      {isInfoPanelOpen ? "Close" : "Info"}
+      {isInfoPanelOpen ? "关闭" : "信息"}
     </button>
   );
 };
